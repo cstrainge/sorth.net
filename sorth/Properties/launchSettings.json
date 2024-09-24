@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "sorth": {
+      "commandName": "Project",
+      "workingDirectory": "C:\\Users\\nullp\\workdir\\sorth.net",
+      "environmentVariables": {
+        "SORTH_NET_LIB_PATH": "C:\\Users\\nullp\\workdir\\sorth.net"
+      }
+    }
+  }
+}
