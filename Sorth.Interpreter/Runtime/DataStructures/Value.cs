@@ -20,6 +20,7 @@ namespace Sorth.Interpreter.Runtime.DataStructures
         public static Value From(Dictionary<Value, Value> value) => new HashMapValue(value);
         public static Value From(DataObject value) => new DataObjectValue(value);
         public static Value From(List<ByteCode> value) => new ByteCodeValue(value);
+        public static Value From(ByteBuffer value) => new ByteBufferValue(value);
 
         public bool IsNumeric() => IsInteger() || IsDouble() || IsBoolean();
         public bool IsInteger() => this is IntValue;
@@ -31,6 +32,7 @@ namespace Sorth.Interpreter.Runtime.DataStructures
         public bool IsHashMap() => this is HashMapValue;
         public bool IsDataObject() => this is DataObjectValue;
         public bool IsByteCode() => this is ByteCodeValue;
+        public bool IsByteBuffer() => this is ByteBufferValue;
 
         public static bool BothAreNumeric(Value a, Value b) => a.IsNumeric() && b.IsNumeric();
 
@@ -209,6 +211,22 @@ namespace Sorth.Interpreter.Runtime.DataStructures
             if (this is ByteCodeValue code)
             {
                 result = code.Value;
+            }
+            else
+            {
+                interpreter.ThrowError("Value is not byte code.");
+            }
+
+            return result;
+        }
+
+        public ByteBuffer AsByteBuffer(SorthInterpreter interpreter)
+        {
+            var result = new ByteBuffer(0);
+
+            if (this is ByteBufferValue buffer)
+            {
+                result = buffer.Value;
             }
             else
             {
@@ -513,6 +531,16 @@ namespace Sorth.Interpreter.Runtime.DataStructures
             var new_code = new List<ByteCode>(Value);
             return new ByteCodeValue(new_code);
         }
+    }
+
+    class ByteBufferValue : Value
+    {
+        public readonly ByteBuffer Value;
+        public ByteBufferValue(ByteBuffer value) => Value = value;
+        public override string ToString() => Value.ToString();
+        public override int GetHashCode() => Value.GetHashCode();
+        public override bool Equals(object? obj) => Value.Equals(obj);
+        public override Value Clone() => new ByteBufferValue(Value.Clone());
     }
 
 }

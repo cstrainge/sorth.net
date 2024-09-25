@@ -3,7 +3,6 @@ using System;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Windows.Markup;
 using Sorth.Interpreter.Language.Code;
 using Sorth.Interpreter.Language.Source;
 using Sorth.Interpreter.Runtime.DataStructures;
@@ -1754,8 +1753,179 @@ namespace Sorth.Interpreter.Runtime.Words
 
     static class ByteBufferWords
     {
+        private static void CheckBufferIndex(SorthInterpreter interpreter, 
+                                             ByteBuffer buffer,
+                                             int byte_size)
+        {
+            if ((buffer.Position + byte_size) >= buffer.Count)
+            {
+                var message = $"Writing a value of size {byte_size} at a position of " +
+                              $"{buffer.Position} would exceed the buffer size, " +
+                              $"{buffer.Count}.";
+
+                interpreter.ThrowError(message);
+            }
+        }
+
+        public static void WordBufferNew(SorthInterpreter interpreter)
+        {
+            var size = (int)interpreter.Pop().AsInteger(interpreter);
+            var buffer = new ByteBuffer(size);
+
+            interpreter.Push(Value.From(buffer));
+        }
+
+        public static void WordBufferWriteInt(SorthInterpreter interpreter)
+        {
+            var byte_size = (int)interpreter.Pop().AsInteger(interpreter);
+            var buffer = interpreter.Pop().AsByteBuffer(interpreter);
+            var value = interpreter.Pop().AsInteger(interpreter);
+
+            CheckBufferIndex(interpreter, buffer, byte_size);
+
+            if (   (byte_size != 1)
+                && (byte_size != 2)
+                && (byte_size != 4)
+                && (byte_size != 8))
+            {
+                interpreter.ThrowError($"Bad integer byte size, {byte_size}.");
+            }
+
+            buffer.WriteInt(byte_size, value);
+        }
+
+        public static void WordBufferReadInt(SorthInterpreter interpreter)
+        {
+            var is_signed = interpreter.Pop().AsBoolean(interpreter);
+            var byte_size = (int)interpreter.Pop().AsInteger(interpreter);
+            var buffer = interpreter.Pop().AsByteBuffer(interpreter);
+
+            CheckBufferIndex(interpreter, buffer, byte_size);
+
+            if (   (byte_size != 1)
+                && (byte_size != 2)
+                && (byte_size != 4)
+                && (byte_size != 8))
+            {
+                interpreter.ThrowError($"Bad integer byte size, {byte_size}.");
+            }
+
+            var value = buffer.ReadInt(byte_size, is_signed);
+            interpreter.Push(Value.From(value));
+        }
+
+        public static void WordBufferWriteFloat(SorthInterpreter interpreter)
+        {
+            var byte_size = (int)interpreter.Pop().AsInteger(interpreter);
+            var buffer = interpreter.Pop().AsByteBuffer(interpreter);
+            var value = interpreter.Pop().AsDouble(interpreter);
+
+            CheckBufferIndex(interpreter, buffer, byte_size);
+
+            if (   (byte_size != 4)
+                && (byte_size != 8))
+            {
+                interpreter.ThrowError($"Bad float byte size, {byte_size}.");
+            }
+
+            buffer.WriteDouble(byte_size, value);
+        }
+
+        public static void WordBufferReadFloat(SorthInterpreter interpreter)
+        {
+            var byte_size = (int)interpreter.Pop().AsInteger(interpreter);
+            var buffer = interpreter.Pop().AsByteBuffer(interpreter);
+
+            CheckBufferIndex(interpreter, buffer, byte_size);
+
+            if (   (byte_size != 4)
+                && (byte_size != 8))
+            {
+                interpreter.ThrowError($"Bad float byte size, {byte_size}.");
+            }
+
+            var value = buffer.ReadDouble(byte_size);
+            interpreter.Push(Value.From(value));
+        }
+
+        public static void WordBufferWriteString(SorthInterpreter interpreter)
+        {
+            var byte_size = (int)interpreter.Pop().AsInteger(interpreter);
+            var buffer = interpreter.Pop().AsByteBuffer(interpreter);
+            var value = interpreter.Pop().AsString(interpreter);
+
+            CheckBufferIndex(interpreter, buffer, byte_size);
+
+            buffer.WriteString(byte_size, value);
+        }
+
+        public static void WordBufferReadString(SorthInterpreter interpreter)
+        {
+            var byte_size = (int)interpreter.Pop().AsInteger(interpreter);
+            var buffer = interpreter.Pop().AsByteBuffer(interpreter);
+
+            CheckBufferIndex(interpreter, buffer, byte_size);
+
+            var value = buffer.ReadString(byte_size);
+            interpreter.Push(Value.From(value));
+        }
+
+        public static void WordBufferSetPostion(SorthInterpreter interpreter)
+        {
+            var buffer = interpreter.Pop().AsByteBuffer(interpreter);
+            var new_position = (int)interpreter.Pop().AsInteger(interpreter);
+
+            buffer.Position = new_position;
+        }
+
+        public static void WordBufferGetPostion(SorthInterpreter interpreter)
+        {
+            var buffer = interpreter.Pop().AsByteBuffer(interpreter);
+
+            interpreter.Push(Value.From(buffer.Position));
+        }
+
+
         public static void Register(SorthInterpreter interpreter)
         {
+            interpreter.AddWord("buffer.new", WordBufferNew,
+                "Create a new byte buffer.",
+                "size -- buffer");
+
+            interpreter.AddWord("buffer.int!", WordBufferWriteInt,
+                "Write an integer of a given size to the buffer.",
+                "value buffer byte_size -- ");
+
+            interpreter.AddWord("buffer.int@", WordBufferReadInt,
+                "Read an integer of a given size from the buffer.",
+                "buffer byte_size is_signed -- value");
+
+
+            interpreter.AddWord("buffer.float!", WordBufferWriteFloat,
+                "Write a float of a given size to the buffer.",
+                "value buffer byte_size -- ");
+
+            interpreter.AddWord("buffer.float@", WordBufferReadFloat,
+                "read a float of a given size from the buffer.",
+                "buffer byte_size -- value");
+
+
+            interpreter.AddWord("buffer.string!", WordBufferWriteString,
+                "Write a string of given size to the buffer.  Padded with 0s if needed.",
+                "value buffer size -- ");
+
+            interpreter.AddWord("buffer.string@", WordBufferReadString,
+                "Read a string of a given max size from the buffer.",
+                "buffer size -- value");
+
+
+            interpreter.AddWord("buffer.position!", WordBufferSetPostion,
+                "Set the position of the buffer pointer.",
+                "position buffer -- ");
+
+            interpreter.AddWord("buffer.position@", WordBufferGetPostion,
+                "Get the position of the buffer pointer.",
+                "buffer -- position");
         }
     }
 
