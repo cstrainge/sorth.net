@@ -41,7 +41,7 @@ namespace Sorth.Interpreter.Runtime
             }
         }
 
-        private ContextualList<WordHandlerInfo> Handlers;
+        public ContextualList<WordHandlerInfo> Handlers { get; private set; }
         public ContextualList<Value> Variables { get; private set; }
 
         public Stack<Value> Stack { get; private set; }
@@ -143,6 +143,19 @@ namespace Sorth.Interpreter.Runtime
         public ( bool, Word? ) FindWord(string word)
         {
             return Dictionary.Find(word);
+        }
+
+        public ( bool, Word?, string ) FindWord(long index)
+        {
+            if ((int)index >= Handlers.Count())
+            {
+                return ( false, null, "" );
+            }
+
+            var handler_info = Handlers[(int)index];
+            var ( found, word ) = FindWord(handler_info.name);
+
+            return ( found, word, handler_info.name );
         }
 
         public void ExecuteWord(long index)

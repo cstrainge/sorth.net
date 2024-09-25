@@ -318,7 +318,7 @@ namespace Sorth.Interpreter.Language.Code
             var push = GetMethod(interpreter_type, "Push");
             var pop = GetMethod(interpreter_type, "Pop");
             var get_variables = GetMethod(interpreter_type, "get_Variables");
-            var find_word = GetMethod(interpreter_type, "FindWord");
+            var find_word = GetMethod(interpreter_type, "FindWord", new[] { typeof(string) });
             var throw_error = GetMethod(interpreter_type, "ThrowError");
             var execute_word_index = GetMethod(interpreter_type,
                                                "ExecuteWord",

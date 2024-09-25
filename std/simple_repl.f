@@ -4,20 +4,21 @@ true variable! repl_running
 
 
 ( Exit the repl. )
-: quit
+: quit  description: "Exit the interpreter."
+        signature: " -- "
     false repl_running !
 ;
 
 
 ( Alternate ways to exit the interpreter. )
 : q  description: "Exit the interpreter."
-     signature: "[exit_code] -- "
+     signature: " -- "
     quit
 ;
 
 
 : exit description: "Exit the interpreter."
-       signature: "[exit_code] -- "
+       signature: " -- "
     quit
 ;
 
