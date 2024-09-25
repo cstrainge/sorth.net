@@ -320,7 +320,9 @@ namespace Sorth.Interpreter.Language.Code
             var get_variables = GetMethod(interpreter_type, "get_Variables");
             var find_word = GetMethod(interpreter_type, "FindWord");
             var throw_error = GetMethod(interpreter_type, "ThrowError");
-            var execute_word_index = GetMethod(interpreter_type, "ExecuteWord", new[] { typeof(long) });
+            var execute_word_index = GetMethod(interpreter_type,
+                                               "ExecuteWord",
+                                               new[] { typeof(long) });
             var execute_word_name = GetMethod(interpreter_type,
                                               "ExecuteWord",
                                               new[] { typeof(string) });

@@ -1,8 +1,6 @@
 ﻿
 
 
-using System;
-
 namespace Sorth.Interpreter.Runtime.DataStructures
 {
 
