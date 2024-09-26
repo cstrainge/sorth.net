@@ -1143,13 +1143,22 @@ repl.history.new variable! repl.history.state
 true variable! repl_is_running
 
 
-: quit
+: quit description: "Exit the repl."
+       signature: " -- "
     false repl_is_running !
 ;
 
 
-: q quit ;
-: exit quit ;
+: q  description: "Exit the repl."
+     signature: " -- "
+    quit
+;
+
+
+: exit description: "Exit the repl."
+       signature: " -- "
+    quit
+;
 
 
 : repl.prompt description: "Print the user prompt.  Replace this word to customize the prompt."
