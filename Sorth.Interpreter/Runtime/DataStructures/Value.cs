@@ -134,7 +134,7 @@ namespace Sorth.Interpreter.Runtime.DataStructures
             }
             else
             {
-                interpreter.ThrowError("Value is not a string.");
+                result = ToString() ?? "";
             }
 
             return result;
@@ -378,7 +378,14 @@ namespace Sorth.Interpreter.Runtime.DataStructures
 
             foreach (var value in Value)
             {
-                result += value + " ";
+                if (value is StringValue string_value)
+                {
+                    result += Stringify(string_value.Value) + " ";
+                }
+                else
+                {
+                    result += value + " ";
+                }
             }
 
             return result + "]";

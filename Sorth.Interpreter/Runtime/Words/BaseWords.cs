@@ -41,7 +41,14 @@ namespace Sorth.Interpreter.Runtime.Words
 
             Value result = Value.Default();
 
-            if (Value.EitherIsDouble(a, b))
+            if (Value.EitherIsString(a, b))
+            {
+                var str_a = a.AsString(interpreter);
+                var str_b = b.AsString(interpreter);
+
+                result = Value.From(string_op(str_a, str_b));
+            }
+            else if (Value.EitherIsDouble(a, b))
             {
                 var double_a = a.AsDouble(interpreter);
                 var double_b = b.AsDouble(interpreter);
@@ -54,13 +61,6 @@ namespace Sorth.Interpreter.Runtime.Words
                 var int_b = b.AsInteger(interpreter);
 
                 result = Value.From(long_op(int_a, int_b));
-            }
-            else if (Value.EitherIsString(a, b))
-            {
-                var str_a = a.AsString(interpreter);
-                var str_b = b.AsString(interpreter);
-
-                result = Value.From(string_op(str_a, str_b));
             }
             else
             {

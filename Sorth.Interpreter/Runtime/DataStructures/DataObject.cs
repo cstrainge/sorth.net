@@ -70,7 +70,12 @@ namespace Sorth.Interpreter.Runtime.DataStructures
         public DataObject(DataObjectDefinition definition)
         {
             Definition = definition;
-            Fields = new List<Value>(Definition.Defaults);
+            Fields = new List<Value>(Definition.Defaults.Count);
+
+            foreach (var value in Definition.Defaults)
+            {
+                Fields.Add(value.Clone());
+            }
         }
 
         public override int GetHashCode()

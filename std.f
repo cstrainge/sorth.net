@@ -1385,6 +1385,35 @@ then
 
 
 
+: show_word immediate  description: "Show information about a word."
+                       signature: "show_word <word_name>"
+
+    word to_string variable! the_word
+    words.get{} variable! words
+
+    words { the_word @ }@@ variable! found
+
+    found word_info.handler_index@@ found word_info.name@@ "Word {} -> {}" string.format .cr
+
+    found word_info.is_immediate@@
+    if
+        "Word is immediate." .cr
+    then
+
+    found word_info.is_scripted@@
+    if
+        "Word is written in Forth." .cr
+    else
+        "Word is a native word." .cr
+    then
+
+    cr
+
+    "Description: " . found word_info.description@@ .cr
+    "Signature:   " . found word_info.signature@@ .cr
+;
+
+
 
 ( Make sure that advanced terminal and user functionality is available.  If it is, enable the )
 ( 'fancy' repl capable of keeping history.  Otherwise enable the simpler repl. )
