@@ -252,61 +252,6 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.Push(Value.From($"{version}.net"));
         }
 
-        private static void WordShowWord(SorthInterpreter interpreter)
-        {
-            var input = interpreter.Pop();
-            var name = "";
-            ( bool, Word? ) found_info = ( false, null );
-
-            if (input.IsString())
-            {
-                name = input.AsString(interpreter);
-                found_info = interpreter.FindWord(name);
-            }
-            else if (input.IsNumeric())
-            {
-                var index = input.AsInteger(interpreter);
-
-                var ( found, found_word, found_name ) = interpreter.FindWord(index);
-
-                found_info = ( found, found_word );
-                name = found_name;
-            }
-
-            if (   (!found_info.Item1)
-                || (found_info.Item2 == null))
-            {
-                Console.WriteLine($"Word, {name}, has not been defined.");
-                return;
-            }
-
-            Word word = found_info.Item2.Value;
-
-            string result = $"Word, {word.handler_index} -> {name}";
-            
-            result += word.is_scripted ? "\n" : ", is a native word.\n";
-
-            if (word.is_immediate)
-            {
-                result += "Word is immediate.\n";
-            }
-
-            if (word.is_hidden)
-            {
-                result += "Word is hidden.\n";
-            }
-
-            if (word.description.Length != 0)
-            {
-                result += $"Description: {word.description}\n";
-            }
-
-            if (word.signature.Length != 0)
-            {
-                result += $"Signature: {word.signature}\n";
-            }
-        }
-
         private static void WordThrow(SorthInterpreter interpreter)
         {
             interpreter.ThrowError(interpreter.Pop().AsString(interpreter));
@@ -346,10 +291,6 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.AddWord("sorth.version", WordSorthVersion,
                 "Get the current version of the interpreter.",
                 " -- version_string");
-
-            interpreter.AddWord("show_word", WordShowWord,
-                "Show detailed information about a word.",
-                "word -- ");
 
             interpreter.AddWord("throw", WordThrow,
                 "Throw an exception with the given message.",
