@@ -822,7 +822,7 @@ user.home user.path_sep + ".sorth_history.json" + constant repl.history.path
                     next_key @ state repl.multi_line.insert
 
                     state repl.state.cursor.x++!!
-                    state repl.multi_line.repaint_current_line
+                    next_key @ term.!
                 then
             endof
     endcase
@@ -1082,9 +1082,8 @@ user.home user.path_sep + ".sorth_history.json" + constant repl.history.path
                 if
                     next_key @ state repl.single_line.insert
 
-                    state repl.single_line.repaint
+                    next_key @ term.!
                     state repl.state.cursor.x++!!
-                    state repl.state.cursor.x@@ term.cursor_right!
                 then
             endof
     endcase
