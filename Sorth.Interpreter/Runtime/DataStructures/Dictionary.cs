@@ -1,5 +1,5 @@
 ﻿
-using System.Collections.Generic;
+using Sorth.Interpreter.Language.Source;
 
 
 
@@ -17,6 +17,8 @@ namespace Sorth.Interpreter.Runtime.DataStructures
 
         public int handler_index;
 
+        public Location? location;
+
         public Word()
         {
             is_immediate = false;
@@ -27,6 +29,14 @@ namespace Sorth.Interpreter.Runtime.DataStructures
             signature = "";
 
             handler_index = -1;
+
+            location = null;
+        }
+
+        public Word(Location location)
+        : this()
+        {
+            this.location = location;
         }
     }
 

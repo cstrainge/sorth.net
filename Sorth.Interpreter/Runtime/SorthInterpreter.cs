@@ -119,7 +119,8 @@ namespace Sorth.Interpreter.Runtime
                     is_scripted = is_scripted,
                     description = description,
                     signature = signature,
-                    handler_index = index
+                    handler_index = index,
+                    location = location
                 };
 
             Dictionary.Insert(word_name, new_word);

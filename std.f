@@ -1393,14 +1393,24 @@ then
 
     words { the_word @ }@@ variable! found
 
-    found word_info.handler_index@@ found word_info.name@@ "Word {} -> {}" string.format .cr
+    found sorth.word.handler_index@@  found sorth.word.name@@  "Word {} -> {}"  string.format  .cr
 
-    found word_info.is_immediate@@
+    found sorth.word.location@@ sorth.location.path@  string.size@  0>
+    if
+         found sorth.word.location@@  dup  sorth.location.path@
+                                 swap dup  sorth.location.line@
+                                     swap  sorth.location.column@
+         "Defined: {}:{}:{}" string.format .cr
+    then
+
+    cr
+
+    found sorth.word.is_immediate@@
     if
         "Word is immediate." .cr
     then
 
-    found word_info.is_scripted@@
+    found sorth.word.is_scripted@@
     if
         "Word is written in Forth." .cr
     else
@@ -1409,8 +1419,8 @@ then
 
     cr
 
-    "Description: " . found word_info.description@@ .cr
-    "Signature:   " . found word_info.signature@@ .cr
+    "Description: " . found sorth.word.description@@ .cr
+    "Signature:   " . found sorth.word.signature@@ .cr
 ;
 
 

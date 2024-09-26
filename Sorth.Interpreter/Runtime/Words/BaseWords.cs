@@ -173,7 +173,6 @@ namespace Sorth.Interpreter.Runtime.Words
         private static void WordAtExit(SorthInterpreter interpreter)
         {
             var value = interpreter.Pop();
-            //Helper.MethodUnimplemented(interpreter);
         }
 
         private static void WordInclude(SorthInterpreter interpreter)
@@ -1407,25 +1406,42 @@ namespace Sorth.Interpreter.Runtime.Words
         }
 
 
+        private static DataObjectDefinition LocationDefinition =
+            new DataObjectDefinition("sorth.location",
+                                     false,
+                                     [
+                                         "path",
+                                         "line",
+                                         "column"
+                                     ],
+                                     [
+                                         Value.From(""),
+                                         Value.From(1),
+                                         Value.From(1)
+                                     ]);
+
+
         private static DataObjectDefinition WordInfoDefinition = 
-            new DataObjectDefinition("word_info",
-            false,
-            [
-                "name",
-                "is_immediate",
-                "is_scripted",
-                "description",
-                "signature",
-                "handler_index"
-            ],
-            [
-                Value.From(""),
-                Value.From(false),
-                Value.From(false),
-                Value.From(""),
-                Value.From(""),
-                Value.From(0)
-            ]);
+            new DataObjectDefinition("sorth.word",
+                                     false,
+                                     [
+                                         "name",
+                                         "is_immediate",
+                                         "is_scripted",
+                                         "description",
+                                         "signature",
+                                         "handler_index",
+                                         "location"
+                                     ],
+                                     [
+                                         Value.From(""),
+                                         Value.From(false),
+                                         Value.From(false),
+                                         Value.From(""),
+                                         Value.From(""),
+                                         Value.From(0),
+                                         Value.From(new DataObject(LocationDefinition))
+                                     ]);
 
 
         private static void RegisterWordInfoStruct(SorthInterpreter interpreter,
@@ -1433,6 +1449,7 @@ namespace Sorth.Interpreter.Runtime.Words
                                                   [CallerLineNumber] int line_number = 0)
         {
             var location = new Location(file_path, line_number, 1);
+            CreateDataDefinitionWords(interpreter, location, LocationDefinition);
             CreateDataDefinitionWords(interpreter, location, WordInfoDefinition);
         }
 
@@ -1447,6 +1464,18 @@ namespace Sorth.Interpreter.Runtime.Words
             data_object.Fields[3] = Value.From(word.description);
             data_object.Fields[4] = Value.From(word.signature);
             data_object.Fields[5] = Value.From(word.handler_index);
+
+            // If locaiton is null, just use the default value.
+            if (word.location != null)
+            {
+                var location_object = new DataObject(LocationDefinition);
+
+                location_object.Fields[0] = Value.From(word.location.Value.Path);
+                location_object.Fields[1] = Value.From(word.location.Value.Line);
+                location_object.Fields[2] = Value.From(word.location.Value.Column);
+
+                data_object.Fields[6] = Value.From(location_object);
+            }
 
             return Value.From(data_object);
         }
