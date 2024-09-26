@@ -220,19 +220,6 @@ namespace Sorth.Interpreter.Runtime.Words
 
         public static string GetTermChar(SorthInterpreter interpreter)
         {
-            /*IntPtr std_in_handle = GetStdHandle(STD_INPUT_HANDLE);
-            byte[] buffer = new byte[1];
-            uint num_read;
-
-            bool result = ReadConsoleA(std_in_handle, buffer, 1, out num_read, IntPtr.Zero);
-            {
-                interpreter.ThrowError($"Could not read from console: {GetLastError()}");
-            }*/
-
-            ;
-
-            // char input = TerminalInput//TerminalInput.GetTermChar(interpreter);
-            //var key_info = Console.ReadKey(intercept: true);
             byte[] chars = new byte[1] { (byte)Console.Read() };
 
             return System.Text.Encoding.ASCII.GetString(chars, 0, 1);
