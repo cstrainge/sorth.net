@@ -1,7 +1,4 @@
 ﻿
-using System;
-using System.IO;
-using System.Reflection.Metadata;
 using System.Text;
 using Sorth.Interpreter.Runtime.DataStructures;
 
@@ -150,11 +147,14 @@ namespace Sorth.Interpreter.Runtime.Words
         private static void WordFileReadString(SorthInterpreter interpreter)
         {
             var file_stream = PopFileSteam(interpreter);
-            var size = interpreter.Pop().AsInteger(interpreter);
+            var size = (int)interpreter.Pop().AsInteger(interpreter);
             var buffer = new byte[size];
 
-            file_stream.Read(buffer, 0, (int)size);
-            interpreter.Push(Value.From(BitConverter.ToString(buffer, 0, (int)size)));
+            file_stream.Read(buffer, 0, size);
+
+            var string_value = Encoding.UTF8.GetString(buffer, 0, size);
+
+            interpreter.Push(Value.From(string_value));
         }
 
         private static void WordFileWrite(SorthInterpreter interpreter)
