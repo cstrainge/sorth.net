@@ -8,6 +8,8 @@ using Sorth.Interpreter.Runtime.DataStructures;
 
 namespace Sorth.Interpreter.Runtime
 {
+    using CallItem = ( string Name, Location Location );
+
 
     public delegate void WordHandler(SorthInterpreter interpreter);
 
@@ -46,6 +48,8 @@ namespace Sorth.Interpreter.Runtime
 
         public Stack<Value> Stack { get; private set; }
 
+        private Stack<CallItem> CallStack;
+
         private Stack<Constructor> Constructors;
 
         public Location? CurrentLocation { get; private set; }
@@ -73,6 +77,8 @@ namespace Sorth.Interpreter.Runtime
 
             Stack = new Stack<Value>();
 
+            CallStack = new Stack<CallItem>();
+
             Constructors = new Stack<Constructor>();
         }
 
@@ -93,6 +99,16 @@ namespace Sorth.Interpreter.Runtime
 
         public void ThrowError(string message)
         {
+            if (CallStack.Count > 0)
+            {
+                message += "\n\nCall stack:\n";
+
+                foreach (var item in CallStack)
+                {
+                    message += $"  {item.Location} -- {item.Name}\n";
+                }
+            }
+
             if (CurrentLocation.HasValue)
             {
                 throw new ScriptError(CurrentLocation.Value, message);
@@ -163,6 +179,8 @@ namespace Sorth.Interpreter.Runtime
         {
             var handler_info = Handlers[(int)index];
 
+            CallStack.Push(( handler_info.name, handler_info.location ));
+
             if (!CurrentLocation.HasValue)
             {
                 CurrentLocation = handler_info.location;
@@ -172,9 +190,15 @@ namespace Sorth.Interpreter.Runtime
             {
                 handler_info.handler(this);
                 CurrentLocation = null;
+                CallStack.Pop();
             }
             catch
             {
+                if (CallStack.Count > 0)
+                {
+                    CallStack.Pop();
+                }
+
                 CurrentLocation = null;
                 throw;
             }
