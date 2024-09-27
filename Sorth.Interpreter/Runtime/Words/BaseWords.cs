@@ -134,7 +134,7 @@ namespace Sorth.Interpreter.Runtime.Words
             }
             else
             {
-                interpreter.ThrowError("Value type not compatible with math operator.");
+                interpreter.ThrowError("Value type not compatable with math operator.");
             }
 
             interpreter.Push(result);
