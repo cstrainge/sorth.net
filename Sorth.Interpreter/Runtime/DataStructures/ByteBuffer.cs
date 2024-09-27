@@ -94,9 +94,9 @@ namespace Sorth.Interpreter.Runtime.DataStructures
 
         private void WriteBytes(int count, byte[] bytes)
         {
-            for (int i = 0; i < count; ++i)
+            for (int i = 0; i < Math.Min(count, bytes.Length); ++i)
             {
-                bytes[i] = Buffer[Position + i];
+                Buffer[Position + i] = bytes[i];
             }
 
             Position += count;
@@ -108,7 +108,7 @@ namespace Sorth.Interpreter.Runtime.DataStructures
 
             for (int i = 0; i < count; ++i)
             {
-                Buffer[Position + i] = bytes[i];
+                bytes[i] = Buffer[Position + i];
             }
 
             Position += count;
