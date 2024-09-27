@@ -64,7 +64,7 @@ namespace Sorth.Interpreter.Runtime.Words
             }
             else
             {
-                interpreter.ThrowError("Value types are not compatable with + operation.");
+                interpreter.ThrowError("Value types are not compatible with + operation.");
             }
 
             interpreter.Push(result);
@@ -103,7 +103,7 @@ namespace Sorth.Interpreter.Runtime.Words
             }
             else
             {
-                interpreter.ThrowError("Value types are not compatable with + operation.");
+                interpreter.ThrowError("Value types are not compatible with + operation.");
             }
 
             interpreter.Push(result);
@@ -134,7 +134,7 @@ namespace Sorth.Interpreter.Runtime.Words
             }
             else
             {
-                interpreter.ThrowError("Value type not compatable with math operator.");
+                interpreter.ThrowError("Value type not compatible with math operator.");
             }
 
             interpreter.Push(result);
@@ -531,14 +531,14 @@ namespace Sorth.Interpreter.Runtime.Words
 
             var top_code = interpreter.Constructor.Stack.Peek().ByteCode;
 
-            var jump_indicies = new List<int>();
+            var jump_indices = new List<int>();
             var jump_targets = new Dictionary<string, int>();
 
             for (int i = 0; i < top_code.Count; ++i)
             {
                 if (IsJump(top_code[i]))
                 {
-                    jump_indicies.Add(i);
+                    jump_indices.Add(i);
                 }
                 else if (   (top_code[i].id == ByteCode.Id.JumpTarget)
                          && (top_code[i].value.IsString()))
@@ -548,7 +548,7 @@ namespace Sorth.Interpreter.Runtime.Words
                 }
             }
 
-            foreach (var jump_index in jump_indicies)
+            foreach (var jump_index in jump_indices)
             {
                 var jump_op = top_code[jump_index];
 
@@ -1460,7 +1460,7 @@ namespace Sorth.Interpreter.Runtime.Words
             data_object.Fields[4] = Value.From(word.signature);
             data_object.Fields[5] = Value.From(word.handler_index);
 
-            // If locaiton is null, just use the default value.
+            // If location is null, just use the default value.
             if (word.location != null)
             {
                 var location_object = new DataObject(LocationDefinition);
@@ -1884,7 +1884,7 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.Push(Value.From(value));
         }
 
-        public static void WordBufferSetPostion(SorthInterpreter interpreter)
+        public static void WordBufferSetPosition(SorthInterpreter interpreter)
         {
             var buffer = interpreter.Pop().AsByteBuffer(interpreter);
             var new_position = (int)interpreter.Pop().AsInteger(interpreter);
@@ -1892,7 +1892,7 @@ namespace Sorth.Interpreter.Runtime.Words
             buffer.Position = new_position;
         }
 
-        public static void WordBufferGetPostion(SorthInterpreter interpreter)
+        public static void WordBufferGetPosition(SorthInterpreter interpreter)
         {
             var buffer = interpreter.Pop().AsByteBuffer(interpreter);
 
@@ -1933,11 +1933,11 @@ namespace Sorth.Interpreter.Runtime.Words
                 "buffer size -- value");
 
 
-            interpreter.AddWord("buffer.position!", WordBufferSetPostion,
+            interpreter.AddWord("buffer.position!", WordBufferSetPosition,
                 "Set the position of the buffer pointer.",
                 "position buffer -- ");
 
-            interpreter.AddWord("buffer.position@", WordBufferGetPostion,
+            interpreter.AddWord("buffer.position@", WordBufferGetPosition,
                 "Get the position of the buffer pointer.",
                 "buffer -- position");
         }

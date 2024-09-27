@@ -85,7 +85,7 @@ namespace Sorth.Interpreter.Language.Code
             return UniqueIndex;
         }
 
-        // Instead of generating a class and method for an empty code body, retrun this null-handler
+        // Instead of generating a class and method for an empty code body, return this null-handler
         // instead.
         private static void NullHandler(SorthInterpreter _)
         {
@@ -105,7 +105,7 @@ namespace Sorth.Interpreter.Language.Code
             }
 
             // Create a new static class to hold the newly generated word.
-            var type_builder = Module.DefineType($"{name}_{Index()}_word", 
+            var type_builder = Module.DefineType($"{name}_{Index()}_word",
                            TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.Abstract);
 
 
@@ -164,7 +164,7 @@ namespace Sorth.Interpreter.Language.Code
             {
                 return (WordHandler)Delegate.CreateDelegate(typeof(WordHandler), handler_info);
             }
-            else 
+            else
             {
                 interpreter.ThrowError("Could not access generated word handler.");
             }
@@ -194,7 +194,7 @@ namespace Sorth.Interpreter.Language.Code
             return constants;
         }
 
-        // Generate a function with wrappper code that makes sure to call MarkContext and 
+        // Generate a function with wrapper code that makes sure to call MarkContext and
         // ReleaseContext.
         private static List<(string, Value)> GenerateContextualUserFunction(
                                                                        SorthInterpreter interpreter,
@@ -577,7 +577,7 @@ namespace Sorth.Interpreter.Language.Code
                             }
                             else
                             {
-                                // It looks like it's a more complex type.  Instead of generating 
+                                // It looks like it's a more complex type.  Instead of generating
                                 // code to recreate the value object we'll store it in a field in
                                 // the generated class and push a clone of it onto the data stack.
 
@@ -625,7 +625,7 @@ namespace Sorth.Interpreter.Language.Code
 
                     case ByteCode.Id.UnmarkCatch:
                         {
-                            // If we haven't declared a local for holding the exception object, 
+                            // If we haven't declared a local for holding the exception object,
                             // declare it now.
                             if (exception_value == null)
                             {
@@ -640,7 +640,7 @@ namespace Sorth.Interpreter.Language.Code
                             var jump_op = code[i];
                             var jump_op_target = (int)(i + jump_op.value.AsInteger(interpreter));
 
-                            // catch (ScriptEerror error) { ...
+                            // catch (ScriptError error) { ...
                             generator.Emit(OpCodes.Leave_S, labels[jump_op_target]);
                             generator.BeginCatchBlock(typeof(ScriptError));
 
