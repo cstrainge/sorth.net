@@ -763,7 +763,7 @@ namespace Sorth.Interpreter.Runtime.Words
 
             if (current_token >= interpreter.Constructor.Tokens.Count)
             {
-                interpreter.ThrowError("Trying to read pase end of token stream.");
+                interpreter.ThrowError("Trying to read past end of token stream.");
             }
 
             var token = interpreter.Constructor.Tokens[current_token];
