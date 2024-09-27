@@ -1353,16 +1353,6 @@
 
 
 
-( Allow user code to register an at exit handler. )
-: at_exit immediate description: "Request that a given word be executed when the script exits."
-                    signature: "at_exit <word>"
-    word op.push_constant_value
-    ` at_exit op.execute
-;
-
-
-
-
 ( Check for extra terminal functionality.  If it's there include some extra useful words. )
 defined? term.raw_mode
 if

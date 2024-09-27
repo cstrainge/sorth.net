@@ -1170,9 +1170,6 @@ true variable! repl_is_running
 : repl  description: "Sorth's Read Evaluate and print loop.  This word does not return."
         signature: " -- "
 
-    ( Make sure we clean up after ourselves when exiting. )
-    at_exit repl.on_exit
-
     ( Print the welcome banner. )
     sorth.version
     user.os "macOS" = if "⌥ + return" else "alt + enter" then
