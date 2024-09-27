@@ -53,7 +53,7 @@ namespace Sorth.Interpreter.Runtime
 
         private Stack<Constructor> Constructors;
 
-        public Location? CurrentLocation { get; private set; }
+        public Location? CurrentLocation { get; set; }
 
         public Constructor Constructor
         {

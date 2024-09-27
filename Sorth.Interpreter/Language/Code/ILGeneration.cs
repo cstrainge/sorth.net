@@ -1,7 +1,7 @@
 ﻿
-using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
+using Sorth.Interpreter.Language.Source;
 using Sorth.Interpreter.Runtime;
 using Sorth.Interpreter.Runtime.DataStructures;
 
@@ -57,6 +57,16 @@ namespace Sorth.Interpreter.Language.Code
                                 " -- index");
         }
     }
+
+
+    struct CompileInfo
+    {
+        public List<( string, Value )> Constants;
+
+        public FieldBuilder LocationArray;
+        public List<Location> Locations;
+    }
+
 
 
     public static class SorthILGenerator
@@ -116,31 +126,31 @@ namespace Sorth.Interpreter.Language.Code
                                                   typeof(void),
                                                   new Type[] { interpreter_type });
             var generator = method_builder.GetILGenerator();
-            List<( string, Value )> constants;
+            CompileInfo compile_info;
 
             // Generate the code for the user function.
             if (with_context_handling)
             {
-                constants = GenerateContextualUserFunction(interpreter,
-                                                           interpreter_type,
-                                                           type_builder,
-                                                           code,
-                                                           generator);
+                compile_info = GenerateContextualUserFunction(interpreter,
+                                                              interpreter_type,
+                                                              type_builder,
+                                                              code,
+                                                              generator);
             }
             else
             {
-                constants = GenerateUserFunction(interpreter,
-                                                 interpreter_type,
-                                                 type_builder,
-                                                 code,
-                                                 generator);
+                compile_info = GenerateUserFunction(interpreter,
+                                                    interpreter_type,
+                                                    type_builder,
+                                                    code,
+                                                    generator);
             }
 
             // Finalize the new class and method.
             Type new_class = type_builder.CreateType();
 
             // Populate the constant fields with their values.
-            foreach (var constant in constants)
+            foreach (var constant in compile_info.Constants)
             {
                 var field = new_class.GetField(constant.Item1);
 
@@ -153,6 +163,14 @@ namespace Sorth.Interpreter.Language.Code
                     interpreter.ThrowError(
                                        $"Internal error, missing constant field {constant.Item1}.");
                 }
+            }
+
+            // Load up the location array.
+            var locations_field = new_class.GetField(compile_info.LocationArray.Name);
+
+            if (locations_field != null)
+            {
+                locations_field.SetValue(null, compile_info.Locations.ToArray());
             }
 
             // Get the info for the new method.
@@ -175,33 +193,32 @@ namespace Sorth.Interpreter.Language.Code
         }
 
         // Translate our bytecode into CIL for execution.
-        private static List<(string, Value)> GenerateUserFunction(SorthInterpreter interpreter,
-                                                                  Type interpreter_type,
-                                                                  TypeBuilder new_type,
-                                                                  List<ByteCode> code,
-                                                                  ILGenerator generator)
+        private static CompileInfo GenerateUserFunction(SorthInterpreter interpreter,
+                                                        Type interpreter_type,
+                                                        TypeBuilder new_type,
+                                                        List<ByteCode> code,
+                                                        ILGenerator generator)
         {
             // The actual user code...
-            var constants = GenerateUserCode(interpreter,
-                                             interpreter_type,
-                                             new_type,
-                                             code,
-                                             generator);
+            var info = GenerateUserCode(interpreter,
+                                        interpreter_type,
+                                        new_type,
+                                        code,
+                                        generator);
 
             // Return to caller.
             generator.Emit(OpCodes.Ret);
 
-            return constants;
+            return info;
         }
 
         // Generate a function with wrapper code that makes sure to call MarkContext and
         // ReleaseContext.
-        private static List<(string, Value)> GenerateContextualUserFunction(
-                                                                       SorthInterpreter interpreter,
-                                                                       Type interpreter_type,
-                                                                       TypeBuilder new_type,
-                                                                       List<ByteCode> code,
-                                                                       ILGenerator generator)
+        private static CompileInfo GenerateContextualUserFunction(SorthInterpreter interpreter,
+                                                                  Type interpreter_type,
+                                                                  TypeBuilder new_type,
+                                                                  List<ByteCode> code,
+                                                                  ILGenerator generator)
         {
             var mark_context = GetMethod(interpreter_type, "MarkContext");
             var release_context = GetMethod(interpreter_type, "ReleaseContext");
@@ -215,11 +232,11 @@ namespace Sorth.Interpreter.Language.Code
             generator.Emit(OpCodes.Callvirt, mark_context);
 
             // The actual user code...
-            var constants = GenerateUserCode(interpreter,
-                                             interpreter_type,
-                                             new_type,
-                                             code,
-                                             generator);
+            var info = GenerateUserCode(interpreter,
+                                        interpreter_type,
+                                        new_type,
+                                        code,
+                                        generator);
 
             // All done, release the context and jump to the end.
             generator.Emit(OpCodes.Ldarg_0);
@@ -242,17 +259,22 @@ namespace Sorth.Interpreter.Language.Code
             // Return to caller.
             generator.Emit(OpCodes.Ret);
 
-            return constants;
+            return info;
         }
 
-        private static List<( string, Value )> GenerateUserCode(SorthInterpreter interpreter,
-                                                                Type interpreter_type,
-                                                                TypeBuilder new_type,
-                                                                List<ByteCode> code,
-                                                                ILGenerator generator)
+        private static CompileInfo GenerateUserCode(SorthInterpreter interpreter,
+                                                    Type interpreter_type,
+                                                    TypeBuilder new_type,
+                                                    List<ByteCode> code,
+                                                    ILGenerator generator)
         {
             var constant_index = 0;
             var constant_field_list = new List<( string, Value )>();
+
+            FieldBuilder location_array = new_type.DefineField("Locations",
+                                                   typeof(Location[]),
+                                                   FieldAttributes.Public | FieldAttributes.Static);
+            List<Location> locations = new List<Location>(50);
 
             var labels = new Dictionary<int, Label>();
             var variables = new Dictionary<string, LocalBuilder>();
@@ -270,6 +292,48 @@ namespace Sorth.Interpreter.Language.Code
             var const_handler_register = GetMethod(const_handler, "Register");
             var const_handler_const = GetField(const_handler, "Constant");
 
+
+            var value_type = typeof(Value);
+            var default_val = GetMethod(value_type, "Default");
+            var as_integer = GetMethod(value_type, "AsInteger");
+            var as_boolean = GetMethod(value_type, "AsBoolean");
+            var from_long = GetMethod(value_type, "From", new[] { typeof(long) });
+            var from_double = GetMethod(value_type, "From", new[] { typeof(double) });
+            var from_string= GetMethod(value_type, "From", new[] { typeof(string) });
+            var from_bool = GetMethod(value_type, "From", new[] { typeof(bool) });
+            var value_clone = GetMethod(value_type, "Clone");
+
+            var list_type = typeof(ContextualList<Value>);
+            var insert = GetMethod(list_type, "Insert");
+            var get_item = GetMethod(list_type, "get_Item");
+            var set_item = GetMethod(list_type, "set_Item");
+
+            var push = GetMethod(interpreter_type, "Push");
+            var pop = GetMethod(interpreter_type, "Pop");
+            var get_variables = GetMethod(interpreter_type, "get_Variables");
+            var find_word = GetMethod(interpreter_type, "FindWord", new[] { typeof(string) });
+            var throw_error = GetMethod(interpreter_type, "ThrowError");
+            var execute_word_index = GetMethod(interpreter_type,
+                                               "ExecuteWord",
+                                               new[] { typeof(long) });
+            var execute_word_name = GetMethod(interpreter_type,
+                                              "ExecuteWord",
+                                              new[] { typeof(string) });
+
+            var set_location = GetPropertySetter(interpreter_type, "CurrentLocation");
+
+            var found_word_tuple = typeof(( bool, Word? ));
+            var item_1 = GetField(found_word_tuple, "Item1");
+            var item_2 = GetField(found_word_tuple, "Item2");
+
+            var exception = typeof(Exception);
+            var message = GetMethod(exception, "get_Message");
+
+            LocalBuilder? found_word = null;
+            LocalBuilder? exception_value = null;
+
+            var location_type = typeof(Location);
+            var location_ctr = GetConstructor(typeof(Location?), new Type[] { location_type });
 
             // Take a first pass through the code.
             for (int i = 0; i < code.Count; ++i)
@@ -300,49 +364,24 @@ namespace Sorth.Interpreter.Language.Code
                 }
             }
 
-            var value_type = typeof(Value);
-            var default_val = GetMethod(value_type, "Default");
-            var as_integer = GetMethod(value_type, "AsInteger");
-            var as_boolean = GetMethod(value_type, "AsBoolean");
-            var from_long = GetMethod(value_type, "From", new[] { typeof(long) });
-            var from_double = GetMethod(value_type, "From", new[] { typeof(double) });
-            var from_string= GetMethod(value_type, "From", new[] { typeof(string) });
-            var from_bool = GetMethod(value_type, "From", new[] { typeof(bool) });
-            var value_clone = GetMethod(value_type, "Clone");
-
-            var list_type = typeof(ContextualList<Value>);
-            var insert = GetMethod(list_type, "Insert");
-            var get_item = GetMethod(list_type, "get_Item");
-            var set_item = GetMethod(list_type, "set_Item");
-
-            var push = GetMethod(interpreter_type, "Push");
-            var pop = GetMethod(interpreter_type, "Pop");
-            var get_variables = GetMethod(interpreter_type, "get_Variables");
-            var find_word = GetMethod(interpreter_type, "FindWord", new[] { typeof(string) });
-            var throw_error = GetMethod(interpreter_type, "ThrowError");
-            var execute_word_index = GetMethod(interpreter_type,
-                                               "ExecuteWord",
-                                               new[] { typeof(long) });
-            var execute_word_name = GetMethod(interpreter_type,
-                                              "ExecuteWord",
-                                              new[] { typeof(string) });
-            var add_word = GetMethod(interpreter_type, "AddWord", new[] {
-                typeof(string), typeof(WordHandler), typeof(string), typeof(string), typeof(bool),
-                typeof(bool), typeof(bool),  typeof(string),  typeof(int) });
-
-            var found_word_tuple = typeof(( bool, Word? ));
-            var item_1 = GetField(found_word_tuple, "Item1");
-            var item_2 = GetField(found_word_tuple, "Item2");
-
-            var exception = typeof(Exception);
-            var message = GetMethod(exception, "get_Message");
-
-            LocalBuilder? found_word = null;
-            LocalBuilder? exception_value = null;
-
             // Take a second pass to generate the user code.
             for (int i = 0; i < code.Count; ++i)
             {
+                var location = code[i].location;
+
+                if (location != null)
+                {
+                    locations.Add(location.Value);
+
+                    // interpreter.CurrentLocation = Locations[index];
+                    generator.Emit(OpCodes.Ldarg_0);
+                    generator.Emit(OpCodes.Ldsfld, location_array);
+                    generator.Emit(OpCodes.Ldc_I4, locations.Count - 1);
+                    generator.Emit(OpCodes.Ldelem, typeof(Location));
+                    generator.Emit(OpCodes.Newobj, location_ctr);
+                    generator.Emit(OpCodes.Callvirt, set_location);
+                }
+
                 switch (code[i].id)
                 {
                     case ByteCode.Id.DefVariable:
@@ -476,7 +515,8 @@ namespace Sorth.Interpreter.Language.Code
                             }
                             else
                             {
-                                interpreter.ThrowError($"Unsupported execute value type {op_param}.");
+                                interpreter.ThrowError(
+                                                     $"Unsupported execute value type {op_param}.");
                             }
                         }
                         break;
@@ -641,7 +681,7 @@ namespace Sorth.Interpreter.Language.Code
                             var jump_op_target = (int)(i + jump_op.value.AsInteger(interpreter));
 
                             // catch (ScriptError error) { ...
-                            generator.Emit(OpCodes.Leave_S, labels[jump_op_target]);
+                            generator.Emit(OpCodes.Leave, labels[jump_op_target]);
                             generator.BeginCatchBlock(typeof(ScriptError));
 
                             // Exception class is on the stack, save it to a local.
@@ -715,7 +755,13 @@ namespace Sorth.Interpreter.Language.Code
                 }
             }
 
-            return constant_field_list;
+            return new CompileInfo
+                {
+                    Constants = constant_field_list,
+
+                    LocationArray = location_array,
+                    Locations = locations
+                };
         }
 
         // Helper methods for accessing type information.
@@ -725,8 +771,7 @@ namespace Sorth.Interpreter.Language.Code
 
             if (result == null)
             {
-                throw new ScriptError("Internal error, could not access " + type.Name +
-                                      " constructor.");
+                throw new ScriptError($"Internal error, could not access {type.Name} constructor.");
             }
 
             return result;
@@ -738,8 +783,8 @@ namespace Sorth.Interpreter.Language.Code
 
             if (result == null)
             {
-                throw new ScriptError("Internal error, could not access " + type.Name + " method " +
-                                      name + ".");
+                throw new ScriptError(
+                                    $"Internal error, could not access {type.Name} method {name}.");
             }
 
             return result;
@@ -751,8 +796,8 @@ namespace Sorth.Interpreter.Language.Code
 
             if (result == null)
             {
-                throw new ScriptError("Internal error, could not access " + type.Name + " method " +
-                                      name + ".");
+                throw new ScriptError(
+                                    $"Internal error, could not access {type.Name} method {name}.");
             }
 
             return result;
@@ -765,11 +810,35 @@ namespace Sorth.Interpreter.Language.Code
 
             if (result == null)
             {
-                throw new ScriptError("Internal error, could not access " + type.Name + " field " +
-                                      name + ".");
+                throw new ScriptError($"Internal error, could not access {type.Name} field {name}.");
             }
 
             return result;
+        }
+
+        private static MethodInfo GetPropertySetter(Type type, string name)
+        {
+            var property = type.GetProperty(name);
+
+            if (property != null)
+            {
+                var setter = property.GetSetMethod();
+
+                if (setter != null)
+                {
+                    return setter;
+                }
+                else
+                {
+                    throw new ScriptError(
+                           $"Internal error, could not access {type.Name} property {name} setter.");
+                }
+            }
+            else
+            {
+                throw new ScriptError(
+                                  $"Internal error, could not access {type.Name} property {name}.");
+            }
         }
     }
 
