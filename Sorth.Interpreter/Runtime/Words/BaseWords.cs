@@ -1444,8 +1444,8 @@ namespace Sorth.Interpreter.Runtime.Words
                                                   [CallerLineNumber] int line_number = 0)
         {
             var location = new Location(file_path, line_number, 1);
-            CreateDataDefinitionWords(interpreter, location, LocationDefinition);
-            CreateDataDefinitionWords(interpreter, location, WordInfoDefinition);
+            CreateDataDefinitionWords(interpreter, location, LocationDefinition, true);
+            CreateDataDefinitionWords(interpreter, location, WordInfoDefinition, true);
         }
 
 
