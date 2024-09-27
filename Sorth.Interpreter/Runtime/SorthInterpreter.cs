@@ -47,6 +47,7 @@ namespace Sorth.Interpreter.Runtime
         public ContextualList<Value> Variables { get; private set; }
 
         public Stack<Value> Stack { get; private set; }
+        public int MaxDepth { get; private set; }
 
         private Stack<CallItem> CallStack;
 
@@ -75,9 +76,10 @@ namespace Sorth.Interpreter.Runtime
             Handlers = new ContextualList<WordHandlerInfo>();
             Variables = new ContextualList<Value>();
 
-            Stack = new Stack<Value>();
+            Stack = new Stack<Value>(50);
+            MaxDepth = 0;
 
-            CallStack = new Stack<CallItem>();
+            CallStack = new Stack<CallItem>(100);
 
             Constructors = new Stack<Constructor>();
         }
@@ -85,6 +87,11 @@ namespace Sorth.Interpreter.Runtime
         public void Push(Value value)
         {
             Stack.Push(value);
+
+            if (Stack.Count > MaxDepth)
+            {
+                MaxDepth = Stack.Count;
+            }
         }
 
         public Value Pop()
@@ -179,28 +186,28 @@ namespace Sorth.Interpreter.Runtime
         {
             var handler_info = Handlers[(int)index];
 
-            CallStack.Push(( handler_info.name, handler_info.location ));
-
             if (!CurrentLocation.HasValue)
             {
                 CurrentLocation = handler_info.location;
             }
 
+            bool pushed = false;
+
             try
             {
+                CallStack.Push(( handler_info.name, handler_info.location ));
+                pushed = true;
+
                 handler_info.handler(this);
-                CurrentLocation = null;
-                CallStack.Pop();
             }
-            catch
+            finally
             {
-                if (CallStack.Count > 0)
+                if (pushed)
                 {
                     CallStack.Pop();
                 }
 
                 CurrentLocation = null;
-                throw;
             }
         }
 
@@ -284,10 +291,9 @@ namespace Sorth.Interpreter.Runtime
             var tokens = Tokenizer.Tokenize(buffer);
             var constructor = new Constructor(tokens);
 
-            Constructors.Push(constructor);
-
             try
             {
+                Constructors.Push(constructor);
                 Constructors.Peek().CompileTokenList(this);
 
                 if (constructor.Top != null)
@@ -298,13 +304,10 @@ namespace Sorth.Interpreter.Runtime
 
                     top_level(this);
                 }
-
-                Constructors.Pop();
             }
-            catch
+            finally
             {
                 Constructors.Pop();
-                throw;
             }
         }
 

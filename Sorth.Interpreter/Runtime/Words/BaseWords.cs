@@ -246,6 +246,13 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.Push(Value.From($"{version}.net"));
         }
 
+        private static void WordSorthMaxDepth(SorthInterpreter interpreter)
+        {
+            var depth = interpreter.MaxDepth;
+
+            interpreter.Push(Value.From(depth));
+        }
+
         private static void WordThrow(SorthInterpreter interpreter)
         {
             interpreter.ThrowError(interpreter.Pop().AsString(interpreter));
@@ -281,6 +288,10 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.AddWord("sorth.version", WordSorthVersion,
                 "Get the current version of the interpreter.",
                 " -- version_string");
+
+            interpreter.AddWord("sorth.max_depth", WordSorthMaxDepth,
+                "Get the max depth of the sorth data stack.",
+                " -- depth");
 
             interpreter.AddWord("throw", WordThrow,
                 "Throw an exception with the given message.",
