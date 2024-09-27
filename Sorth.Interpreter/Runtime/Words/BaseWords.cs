@@ -170,11 +170,6 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.Reset();
         }
 
-        private static void WordAtExit(SorthInterpreter interpreter)
-        {
-            var value = interpreter.Pop();
-        }
-
         private static void WordInclude(SorthInterpreter interpreter)
         {
             var path = interpreter.Pop().AsString(interpreter);
@@ -262,10 +257,6 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.AddWord("reset", WordReset,
                 "Reset the interpreter to it's default state.",
                 " -- ");
-
-            interpreter.AddWord("at_exit", WordAtExit,
-                "Run the given word when the interpreter exits.",
-                "word -- ");
 
             interpreter.AddWord("include", WordInclude,
                 "Include and execute another source file.",
@@ -530,7 +521,7 @@ namespace Sorth.Interpreter.Runtime.Words
         private static void WordCodeResolveJumps(SorthInterpreter interpreter)
         {
             static bool IsJump(ByteCode code)
-            { 
+            {
                 return    (code.id == ByteCode.Id.Jump)
                        || (code.id == ByteCode.Id.JumpIfZero)
                        || (code.id == ByteCode.Id.JumpIfNotZero)
@@ -796,7 +787,7 @@ namespace Sorth.Interpreter.Runtime.Words
 
             if (found && (word != null))
             {
-                var code = new ByteCode(ByteCode.Id.PushConstantValue, 
+                var code = new ByteCode(ByteCode.Id.PushConstantValue,
                                         Value.From(word.Value.handler_index),
                                         null);
 
@@ -1033,7 +1024,9 @@ namespace Sorth.Interpreter.Runtime.Words
 
         private static void WordIsValueStructure(SorthInterpreter interpreter)
         {
-            Helper.MethodUnimplemented(interpreter);
+            var value = interpreter.Pop();
+
+            interpreter.Push(Value.From(value.IsDataObject()));
         }
 
         private static void WordIsValueArray(SorthInterpreter interpreter)
@@ -1045,7 +1038,9 @@ namespace Sorth.Interpreter.Runtime.Words
 
         private static void WordIsValueBuffer(SorthInterpreter interpreter)
         {
-            Helper.MethodUnimplemented(interpreter);
+            var value = interpreter.Pop();
+
+            interpreter.Push(Value.From(value.IsByteBuffer()));
         }
 
         private static void WordIsValueHashTable(SorthInterpreter interpreter)
@@ -1352,7 +1347,7 @@ namespace Sorth.Interpreter.Runtime.Words
                     interpreter.ExecuteWord(struct_read.handler_index);
                 },
                 location,
-                "Read from the structure field " + 
+                "Read from the structure field " +
                     $"{definition.FieldNames[field_index]} in a variable.",
                 "structure_var -- value",
                 is_immediate,
@@ -1421,7 +1416,7 @@ namespace Sorth.Interpreter.Runtime.Words
                                      ]);
 
 
-        private static DataObjectDefinition WordInfoDefinition = 
+        private static DataObjectDefinition WordInfoDefinition =
             new DataObjectDefinition("sorth.word",
                                      false,
                                      [
@@ -1772,7 +1767,7 @@ namespace Sorth.Interpreter.Runtime.Words
 
     static class ByteBufferWords
     {
-        private static void CheckBufferIndex(SorthInterpreter interpreter, 
+        private static void CheckBufferIndex(SorthInterpreter interpreter,
                                              ByteBuffer buffer,
                                              int byte_size)
         {

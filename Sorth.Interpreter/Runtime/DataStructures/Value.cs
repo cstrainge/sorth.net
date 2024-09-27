@@ -62,7 +62,7 @@ namespace Sorth.Interpreter.Runtime.DataStructures
             }
             else
             {
-                interpreter.ThrowError("Value not convertable to integer.");
+                interpreter.ThrowError("Value not convertible to integer.");
             }
 
             return result;
@@ -86,7 +86,7 @@ namespace Sorth.Interpreter.Runtime.DataStructures
             }
             else
             {
-                interpreter.ThrowError("Value not convertable to double.");
+                interpreter.ThrowError("Value not convertible to double.");
             }
 
             return result;
@@ -114,7 +114,7 @@ namespace Sorth.Interpreter.Runtime.DataStructures
             }
             else
             {
-                interpreter.ThrowError("Value not convertable to boolean.");
+                interpreter.ThrowError("Value not convertible to boolean.");
             }
 
             return result;
@@ -376,16 +376,20 @@ namespace Sorth.Interpreter.Runtime.DataStructures
         {
             string result = "[ ";
 
-            foreach (var value in Value)
+            for (int i = 0; i < Value.Count; ++i)
             {
+                var value = Value[i];
+
                 if (value is StringValue string_value)
                 {
-                    result += Stringify(string_value.Value) + " ";
+                    result += Stringify(string_value.Value);
                 }
                 else
                 {
-                    result += value + " ";
+                    result += value;
                 }
+
+                result += i < (Value.Count - 1) ? " , " : " ";
             }
 
             return result + "]";

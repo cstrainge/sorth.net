@@ -210,7 +210,7 @@ namespace Sorth.Interpreter.Language.Source
 
                     // We're on a new line, so get rid of the whitespace until we either find text
                     // or reach the column we're looking for.  Any whitespace after that column will
-                    // be included in the string.  Any skiped new lines should be added to the
+                    // be included in the string.  Any skipped new lines should be added to the
                     // string.
                     int start_line = buffer.CurrentLocation().Line;
 
