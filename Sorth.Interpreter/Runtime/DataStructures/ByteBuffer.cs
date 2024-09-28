@@ -61,7 +61,14 @@ namespace Sorth.Interpreter.Runtime.DataStructures
 
         public void WriteDouble(int size, double value)
         {
-            WriteBytes(size, BitConverter.GetBytes(value));
+            if (size == 4)
+            {
+                WriteBytes(size, BitConverter.GetBytes((float)value));
+            }
+            else
+            {
+                WriteBytes(size, BitConverter.GetBytes(value));
+            }
         }
 
         public double ReadDouble(int size)

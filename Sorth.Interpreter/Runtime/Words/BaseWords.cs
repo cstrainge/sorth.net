@@ -1782,7 +1782,7 @@ namespace Sorth.Interpreter.Runtime.Words
                                              ByteBuffer buffer,
                                              int byte_size)
         {
-            if ((buffer.Position + byte_size) >= buffer.Count)
+            if ((buffer.Position + byte_size) > buffer.Count)
             {
                 var message = $"Writing a value of size {byte_size} at a position of " +
                               $"{buffer.Position} would exceed the buffer size, " +
