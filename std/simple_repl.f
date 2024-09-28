@@ -1,31 +1,29 @@
 
-( Keep track of if we're shutting down. )
-true variable! repl_running
-
-
-( Exit the repl. )
-: quit  description: "Exit the interpreter."
-        signature: " -- "
-    false repl_running !
+( Define a user prompt for the REPL. )
+: prompt description: "Prints the user input prompt in the REPL."
+    ">> " .
 ;
 
 
-( Alternate ways to exit the interpreter. )
-: q  description: "Exit the interpreter."
+( Ways to exit the repl. )
+false variable! repl.is_quitting?
+
+
+: quit description: "Exit the repl."
+       signature: " -- "
+    true repl.is_quitting? !
+;
+
+
+: q  description: "Exit the repl."
      signature: " -- "
     quit
 ;
 
 
-: exit description: "Exit the interpreter."
+: exit description: "Exit the repl."
        signature: " -- "
     quit
-;
-
-
-( Define a user prompt for the REPL. )
-: prompt description: "Prints the user input prompt in the REPL."
-    ">> " .
 ;
 
 
@@ -33,6 +31,7 @@ true variable! repl_running
 : repl description: "Sorth's REPL: read, evaluate, and print loop."
        signature: " -- "
 
+    ( Print the welcome banner. )
     sorth.version
     "*
        Strange Forth REPL.
@@ -43,10 +42,10 @@ true variable! repl_running
        Enter show_word <word_name> to list detailed information about a word.
 
     *"
-    string.format .
+    string.format .cr
 
     begin
-        repl_running @
+        repl.is_quitting? @ '
     while
         try
             ( Always make sure we get the newest version of the prompt.  That way the user can )

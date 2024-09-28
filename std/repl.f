@@ -961,7 +961,7 @@ user.home user.path_sep + ".sorth_history.json" + constant repl.history.path
 
     false variable! is_done_editing?
 
-    "" variable! next_key     ( Key associated with the command, if any. )
+    variable next_key     ( Key associated with the command, if any. )
 
     repl.get_next_command
     case
@@ -1140,12 +1140,19 @@ repl.history.new variable! repl.history.state
 ;
 
 
-true variable! repl_is_running
+: repl.prompt description: "Print the user prompt.  Replace this word to customize the prompt."
+              signature: " -- "
+    240 term.fgc ">" + term.crst + "> " + .
+;
+
+
+( Ways to exit the repl. )
+false variable! repl.is_quitting?
 
 
 : quit description: "Exit the repl."
        signature: " -- "
-    false repl_is_running !
+    true repl.is_quitting? !
 ;
 
 
@@ -1161,13 +1168,7 @@ true variable! repl_is_running
 ;
 
 
-: repl.prompt description: "Print the user prompt.  Replace this word to customize the prompt."
-              signature: " -- "
-    240 term.fgc ">" + term.crst + "> " + .
-;
-
-
-: repl  description: "Sorth's Read Evaluate and print loop.  This word does not return."
+: repl  description: "Sorth's Read Evaluate and print loop."
         signature: " -- "
 
     ( Print the welcome banner. )
@@ -1186,7 +1187,7 @@ true variable! repl_is_running
     string.format .cr
 
     ( Load the previous session's history if there is one. )
-    ( repl.history.state repl.history.load )
+    repl.history.state repl.history.load
 
     ( Load and process the user config file, if it exists. )
     repl.config_path file.exists?
@@ -1197,7 +1198,7 @@ true variable! repl_is_running
     ( Loop forever.  If the user enters a quit command the execution of this script will end at )
     ( that point. )
     begin
-        repl_is_running @
+        repl.is_quitting? @ '
     while
         try
             ( Read and attempt to execute the user command. )
@@ -1211,7 +1212,7 @@ true variable! repl_is_running
             false term.raw_mode
 
             ( An error occurred so report the error to the user. )
-            cr .cr cr
+            cr .cr
         endcatch
     repeat
 ;

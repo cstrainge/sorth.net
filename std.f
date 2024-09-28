@@ -1353,6 +1353,16 @@
 
 
 
+( Allow user code to register an at exit handler. )
+: at_exit immediate description: "Request that a given word be executed when the script exits."
+                    signature: "at_exit <word>"
+    word op.push_constant_value
+    ` at_exit op.execute
+;
+
+
+
+
 ( Check for extra terminal functionality.  If it's there include some extra useful words. )
 defined? term.raw_mode
 if
@@ -1373,45 +1383,6 @@ if
     then
 then
 
-
-
-: show_word immediate  description: "Show information about a word."
-                       signature: "show_word <word_name>"
-
-    word to_string variable! the_word
-    words.get{} variable! words
-
-    words { the_word @ }@@ variable! found
-
-    found sorth.word.handler_index@@  found sorth.word.name@@  "Word {} -> {}"  string.format  .cr
-
-    found sorth.word.location@@ sorth.location.path@  string.size@  0>
-    if
-         found sorth.word.location@@  dup  sorth.location.path@
-                                 swap dup  sorth.location.line@
-                                     swap  sorth.location.column@
-         "Defined: {}:{}:{}" string.format .cr
-    then
-
-    cr
-
-    found sorth.word.is_immediate@@
-    if
-        "Word is immediate." .cr
-    then
-
-    found sorth.word.is_scripted@@
-    if
-        "Word is written in Forth." .cr
-    else
-        "Word is a native word." .cr
-    then
-
-    cr
-
-    "Description: " . found sorth.word.description@@ .cr
-    "Signature:   " . found sorth.word.signature@@ .cr
-;
 
 
 
