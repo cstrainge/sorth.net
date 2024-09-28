@@ -2023,6 +2023,13 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.Push(Value.From(map_dst));
         }
 
+        private static void WordHashSize(SorthInterpreter interpreter)
+        {
+            var map = interpreter.Pop().AsHashMap(interpreter);
+
+            interpreter.Push(Value.From(map.Count));
+        }
+
         private static void WordHashTableIterate(SorthInterpreter interpreter)
         {
             var map = interpreter.Pop().AsHashMap(interpreter);
@@ -2059,6 +2066,10 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.AddWord("{}.+", WordHashPlus,
                 "Take two hashes and deep copy the contents from the second into the first.",
                 "dest source -- dest");
+
+            interpreter.AddWord("{}.size@", WordHashSize,
+                "Get the size of the hash table.",
+                "table -- size");
 
             interpreter.AddWord("{}.iterate", WordHashTableIterate,
                 "Iterate through a hash table and call a word for each item.",
