@@ -378,14 +378,6 @@
 ;
 
 
-: show_word immediate description: "Show detailed information about a word."
-            signature: "show_word <word_name>"
-    word op.push_constant_value
-    ` show_word op.execute
-;
-
-
-
 
 ( Handy comparisons. )
 : 0>  description: "Is the value greater than 0?"
@@ -1352,13 +1344,41 @@
 
 
 
+: show_word immediate description: "Show detailed information about a word."
+                      signature: "show_word <word_name>"
+    words.get{} { word to_string }@
 
-( Allow user code to register an at exit handler. )
-: at_exit immediate description: "Request that a given word be executed when the script exits."
-                    signature: "at_exit <word>"
-    word op.push_constant_value
-    ` at_exit op.execute
+           dup sorth.word.handler_index@
+      swap dup sorth.word.name@
+      swap dup sorth.word.location@
+               dup sorth.location.path@
+          swap dup sorth.location.line@
+          swap sorth.location.column@
+    3 pick dup sorth.word.description@
+      swap dup sorth.word.signature@
+    swap 7 push-to
+    "*Word:        {} -> {}
+      Defined:     {}:{}:{}
+
+      Description: {}
+      Signature:   {}*"
+    string.format .cr
+
+    dup sorth.word.is_immediate@
+    if
+        "\n             The word is immediate." .
+    then
+
+    sorth.word.is_scripted@
+    if
+        "\n             The word is written in Forth." .
+    else
+        "\n             The word is a native word." .
+    then
+
+    cr
 ;
+
 
 
 
