@@ -211,27 +211,29 @@ namespace Sorth.Interpreter.Runtime.Words
 
             foreach (var word in words)
             {
-                if (word.Key.Length > max_size)
-                {
-                    max_size = word.Key.Length;
-                }
-
                 if (!word.Value.is_hidden)
                 {
+                    if (word.Key.Length > max_size)
+                    {
+                        max_size = word.Key.Length;
+                    }
+
                     count++;
                 }
             }
 
             Console.WriteLine($"There are {count} words defined.");
 
+            var format_str = "{0,-" + max_size + "}  {1,4}  {2,9}  --  {3}";
+
             foreach (var word in words)
             {
                 if (!word.Value.is_hidden)
                 {
-                    var format_str = "{0,-" + max_size + "}  {1,4}  {2}";
                     var text = string.Format(format_str,
                                              word.Key,
                                              word.Value.handler_index,
+                                             word.Value.is_immediate ? "immediate" : "",
                                              word.Value.description);
 
                     Console.WriteLine(text);
