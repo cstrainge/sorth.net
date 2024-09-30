@@ -345,6 +345,37 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.Push(b);
         }
 
+        private static void WordDepth(SorthInterpreter interpreter)
+        {
+            interpreter.Push(Value.From(interpreter.Stack.Count));
+        }
+
+        private static void WordPick(SorthInterpreter interpreter)
+        {
+            var index = (int)interpreter.Pop().AsInteger(interpreter);
+            var count = interpreter.Stack.Count;
+
+            if ((index < 0) || (index >= count))
+            {
+                interpreter.ThrowError($"Index {index} is out of range of stack, {count}.");
+            }
+
+            interpreter.Push(interpreter.Pick(index));
+        }
+
+        private static void WordPushTo(SorthInterpreter interpreter)
+        {
+            var index = (int)interpreter.Pop().AsInteger(interpreter);
+            var count = interpreter.Stack.Count;
+
+            if ((index < 0) || (index >= count))
+            {
+                interpreter.ThrowError($"Index {index} is out of range of stack, {count}.");
+            }
+
+            interpreter.PushTo(index);
+        }
+
 
         public static void Register(SorthInterpreter interpreter)
         {
@@ -367,6 +398,18 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.AddWord("rot", WordRot,
                 "Rotate the top 3 values on the stack.",
                 "a b c -- c a b");
+
+            interpreter.AddWord("depth", WordDepth,
+                "Get the current depth of the stack.",
+                " -- depth");
+
+            interpreter.AddWord("pick", WordPick,
+                "Pick the value n locations down in the stack and push it on the top.",
+                "n -- value");
+
+            interpreter.AddWord("push-to", WordPushTo,
+                "Pop the top value and push it back into the stack a position from the top.",
+                "n -- <updated-stack>>");
         }
     }
 
@@ -626,7 +669,7 @@ namespace Sorth.Interpreter.Runtime.Words
 
                 foreach (var word in word_list)
                 {
-                    message += word;
+                    message += $"{word} ";
                 }
 
                 message += "].";

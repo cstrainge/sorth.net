@@ -104,6 +104,28 @@ namespace Sorth.Interpreter.Runtime
             return Stack.Pop();
         }
 
+        public Value Pick(int index)
+        {
+            var temp_list = new List<Value>(Stack);
+
+            var item = temp_list[index];
+            temp_list.RemoveAt(index);
+
+            Stack = new Stack<Value>(temp_list.AsEnumerable().Reverse());
+
+            return item;
+        }
+
+        public void PushTo(int index)
+        {
+            var value = Stack.Pop();
+            var temp_list = new List<Value>(Stack);
+
+            temp_list.Insert(index, value);
+
+            Stack = new Stack<Value>(temp_list.AsEnumerable().Reverse());
+        }
+
         public void ThrowError(string message)
         {
             if (CallStack.Count > 0)
