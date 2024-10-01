@@ -308,6 +308,25 @@
 
 
 
+: nip description: "Nip the second from the top item from the stack."
+      signature: "a b c -- a c"
+    swap
+    drop
+;
+
+
+
+: clear description: "Clear out the stack."
+        signature: " -- "
+    begin
+        depth  0  <>
+    while
+        drop
+    repeat
+;
+
+
+
 ( Simple increment and decrements. )
 : ++  description: "Increment a value on the stack."
       ( value -- incremented )
@@ -1353,7 +1372,7 @@
       swap dup sorth.word.location@
                dup sorth.location.path@
           swap dup sorth.location.line@
-          swap sorth.location.column@
+              swap sorth.location.column@
     3 pick dup sorth.word.description@
       swap dup sorth.word.signature@
     swap 7 push-to
@@ -1378,7 +1397,6 @@
 
     cr
 ;
-
 
 
 
