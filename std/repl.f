@@ -1131,15 +1131,6 @@ user.home user.path_sep + ".sorth_history.json" + constant repl.history.path
 repl.history.new variable! repl.history.state
 
 
-( When the repl exits make absolutely sure that the terminal is left as we found it. )
-: repl.on_exit  hidden  ( -- )
-    false term.raw_mode
-    repl.history.state repl.history.save
-
-    "ok" .cr
-;
-
-
 : repl.prompt description: "Print the user prompt.  Replace this word to customize the prompt."
               signature: " -- "
     240 term.fgc ">" + term.crst + "> " + .
@@ -1215,4 +1206,7 @@ false variable! repl.is_quitting?
             cr .cr
         endcatch
     repeat
+
+    false term.raw_mode
+    repl.history.state repl.history.save
 ;
