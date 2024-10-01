@@ -31,6 +31,18 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.ThrowError("Word is unimplemented.");
         }
 
+        public static Token GetNextToken(SorthInterpreter interpreter)
+        {
+            var current_token = ++interpreter.Constructor.CurrentToken;
+
+            if (current_token >= interpreter.Constructor.Tokens.Count)
+            {
+                interpreter.ThrowError("Trying to read past end of token stream.");
+            }
+
+            return interpreter.Constructor.Tokens[current_token];
+        }
+
         public static void StringOrNumericOp(SorthInterpreter interpreter,
                                               Func<double, double, double> double_op,
                                               Func<long, long, long> long_op,
@@ -176,6 +188,12 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.ProcessSourceFile(path);
         }
 
+        private static void WordIncludeIm(SorthInterpreter interpreter)
+        {
+            var token = Helper.GetNextToken(interpreter);
+            interpreter.ProcessSourceFile(token.Text);
+        }
+
         private static void WordPrintStack(SorthInterpreter interpreter)
         {
             foreach (var item in interpreter.Stack)
@@ -270,6 +288,12 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.AddWord("include", WordInclude,
                 "Include and execute another source file.",
                 "source_path -- ");
+
+
+            interpreter.AddWord("[include]", WordIncludeIm,
+                "Include and execute another source file.",
+                "[include] file/to/include.f",
+                true);
 
             interpreter.AddWord(".", WordPrintValue,
                 "Print out the value at the top of the stack.",
@@ -804,14 +828,7 @@ namespace Sorth.Interpreter.Runtime.Words
     {
         private static void WordWord(SorthInterpreter interpreter)
         {
-            var current_token = ++interpreter.Constructor.CurrentToken;
-
-            if (current_token >= interpreter.Constructor.Tokens.Count)
-            {
-                interpreter.ThrowError("Trying to read past end of token stream.");
-            }
-
-            var token = interpreter.Constructor.Tokens[current_token];
+            var token = Helper.GetNextToken(interpreter);
             interpreter.Push(Value.From(token));
         }
 
@@ -831,14 +848,7 @@ namespace Sorth.Interpreter.Runtime.Words
 
         private static void WordWordIndex(SorthInterpreter interpreter)
         {
-            var current_token = ++interpreter.Constructor.CurrentToken;
-
-            if (current_token >= interpreter.Constructor.Tokens.Count)
-            {
-                interpreter.ThrowError("Trying to read past end of token stream.");
-            }
-
-            var name = interpreter.Constructor.Tokens[current_token].Text;
+            var name = Helper.GetNextToken(interpreter).Text;
             var ( found, word ) = interpreter.FindWord(name);
 
             if (found && (word != null))
@@ -879,8 +889,7 @@ namespace Sorth.Interpreter.Runtime.Words
 
         private static void WordIsDefined(SorthInterpreter interpreter)
         {
-            var current_token = ++interpreter.Constructor.CurrentToken;
-            var token = interpreter.Constructor.Tokens[current_token];
+            var token = Helper.GetNextToken(interpreter);
 
             ByteCodeWords.InsertUserInstruction(interpreter,
                                                 ByteCode.Id.WordExists,
@@ -889,12 +898,88 @@ namespace Sorth.Interpreter.Runtime.Words
 
         private static void WordIsDefinedIm(SorthInterpreter interpreter)
         {
-            Helper.MethodUnimplemented(interpreter);
+            var token = Helper.GetNextToken(interpreter);
+
+            var ( found, _ ) = interpreter.FindWord(token.Text);
+            interpreter.Push(Value.From(found));
         }
 
         private static void WordIsUndefinedIm(SorthInterpreter interpreter)
         {
-            Helper.MethodUnimplemented(interpreter);
+            var token = Helper.GetNextToken(interpreter);
+
+            var ( found, _ ) = interpreter.FindWord(token.Text);
+            interpreter.Push(Value.From(!found));
+        }
+
+        private static void WordIfIm(SorthInterpreter interpreter)
+        {
+            static bool IsOneOf(string found, string[] words)
+            {
+                foreach (var word in words)
+                {
+                    if (found == word)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            static string SkipUntil(SorthInterpreter interpreter, string[] words)
+            {
+                var token = Helper.GetNextToken(interpreter);
+
+                while (!IsOneOf(token.Text, words))
+                {
+                    token = Helper.GetNextToken(interpreter);
+                }
+
+                return token.Text;
+            }
+
+            var ( found, compile_until_word ) = interpreter.FindWord("code.compile_until_words");
+
+            if (!found || (compile_until_word == null))
+            {
+                interpreter.ThrowError("Internal error, Could not find required word.");
+            }
+            else
+            {
+                var compile_until = interpreter.Handlers[compile_until_word.Value.handler_index];
+                var result = interpreter.Pop().AsBoolean(interpreter);
+
+                if (result)
+                {
+                    interpreter.Push(Value.From("[else]"));
+                    interpreter.Push(Value.From("[then]"));
+                    interpreter.Push(Value.From(2));
+
+                    compile_until.handler(interpreter);
+
+                    var found_word = interpreter.Pop().AsString(interpreter);
+
+                    if (found_word == "[else]")
+                    {
+                        SkipUntil(interpreter, new[] { "[then]" });
+                    }
+                }
+                else
+                {
+                    var found_word = SkipUntil(interpreter, new[] { "[else]", "[then]" });
+
+                    if (found_word == "[else]")
+                    {
+                        interpreter.Push(Value.From("[then]"));
+                        interpreter.Push(Value.From(1));
+
+                        compile_until.handler(interpreter);
+
+                        interpreter.Pop();
+                    }
+                }
+            }
         }
 
 
@@ -930,6 +1015,11 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.AddWord("[undefined?]", WordIsUndefinedIm,
                 "Evaluate at compile time, is the given word not defined?",
                 " -- bool",
+                true);
+
+            interpreter.AddWord("[if]", WordIfIm,
+                "Evaluate an if at compile time.  Only the code on successful branch is compiled.",
+                "[if] <code> [else] <code> [then]",
                 true);
         }
     }
