@@ -1139,56 +1139,56 @@ namespace Sorth.Interpreter.Runtime.Words
 
     static class ValueTypeWords
     {
-        private static void WordIsValueNumber(SorthInterpreter interpreter)
+        private static void WordValueIsNumber(SorthInterpreter interpreter)
         {
             var value = interpreter.Pop();
 
             interpreter.Push(Value.From(value.IsNumeric()));
         }
 
-        private static void WordIsValueBoolean(SorthInterpreter interpreter)
+        private static void WordValueIsBoolean(SorthInterpreter interpreter)
         {
             var value = interpreter.Pop();
 
             interpreter.Push(Value.From(value.IsBoolean()));
         }
 
-        private static void WordIsValueString(SorthInterpreter interpreter)
+        private static void WordValueIsString(SorthInterpreter interpreter)
         {
             var value = interpreter.Pop();
 
             interpreter.Push(Value.From(value.IsString()));
         }
 
-        private static void WordIsValueStructure(SorthInterpreter interpreter)
+        private static void WordValueIsStructure(SorthInterpreter interpreter)
         {
             var value = interpreter.Pop();
 
             interpreter.Push(Value.From(value.IsDataObject()));
         }
 
-        private static void WordIsValueArray(SorthInterpreter interpreter)
+        private static void WordValueIsArray(SorthInterpreter interpreter)
         {
             var value = interpreter.Pop();
 
             interpreter.Push(Value.From(value.IsArray()));
         }
 
-        private static void WordIsValueBuffer(SorthInterpreter interpreter)
+        private static void WordValueIsBuffer(SorthInterpreter interpreter)
         {
             var value = interpreter.Pop();
 
             interpreter.Push(Value.From(value.IsByteBuffer()));
         }
 
-        private static void WordIsValueHashTable(SorthInterpreter interpreter)
+        private static void WordValueIsHashTable(SorthInterpreter interpreter)
         {
             var value = interpreter.Pop();
 
             interpreter.Push(Value.From(value.IsHashMap()));
         }
 
-        private static void WordIsValueByteCode(SorthInterpreter interpreter)
+        private static void WordValueIsByteCode(SorthInterpreter interpreter)
         {
             var value = interpreter.Pop();
 
@@ -1203,35 +1203,35 @@ namespace Sorth.Interpreter.Runtime.Words
 
         public static void Register(SorthInterpreter interpreter)
         {
-            interpreter.AddWord("is_value_number?", WordIsValueNumber,
+            interpreter.AddWord("value.is-number?", WordValueIsNumber,
                 "Is the value a number?",
                 "value -- bool");
 
-            interpreter.AddWord("is_value_boolean?", WordIsValueBoolean,
+            interpreter.AddWord("value.is-boolean?", WordValueIsBoolean,
                 "Is the value a boolean?",
                 "value -- bool");
 
-            interpreter.AddWord("is_value_string?", WordIsValueString,
+            interpreter.AddWord("value.is-string?", WordValueIsString,
                 "Is the value a string?",
                 "value -- bool");
 
-            interpreter.AddWord("is_value_structure?", WordIsValueStructure,
+            interpreter.AddWord("value.is-structure?", WordValueIsStructure,
                 "Is the value a structure?",
                 "value -- bool");
 
-            interpreter.AddWord("is_value_array?", WordIsValueArray,
+            interpreter.AddWord("value.is-array?", WordValueIsArray,
                 "Is the value an array?",
                 "value -- bool");
 
-            interpreter.AddWord("is_value_buffer?", WordIsValueBuffer,
+            interpreter.AddWord("value.is-buffer?", WordValueIsBuffer,
                 "Is the value a byte buffer?",
                 "value -- bool");
 
-            interpreter.AddWord("is_value_hash_table?", WordIsValueHashTable,
+            interpreter.AddWord("value.is-hash-table?", WordValueIsHashTable,
                 "Is the value a hash table?",
                 "value -- bool");
 
-            interpreter.AddWord("is_value_bytecode?", WordIsValueByteCode,
+            interpreter.AddWord("value.is-bytecode?", WordValueIsByteCode,
                 "Is the value bytecode?",
                 "value -- bool");
 
