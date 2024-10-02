@@ -939,45 +939,37 @@ namespace Sorth.Interpreter.Runtime.Words
                 return token.Text;
             }
 
-            var ( found, compile_until_word ) = interpreter.FindWord("code.compile_until_words");
-
-            if (!found || (compile_until_word == null))
+            static string CompileUntil(SorthInterpreter interpreter, string[] words)
             {
-                interpreter.ThrowError("Internal error, Could not find required word.");
+                var token = Helper.GetNextToken(interpreter);
+
+                while (!IsOneOf(token.Text, words))
+                {
+                    interpreter.Constructor.CompileToken(interpreter, token);
+                    token = Helper.GetNextToken(interpreter);
+                }
+
+                return token.Text;
+            }
+
+            var result = interpreter.Pop().AsBoolean(interpreter);
+
+            if (result)
+            {
+                var found_word = CompileUntil(interpreter, new[] { "[else]", "[then]" });
+
+                if (found_word == "[else]")
+                {
+                    SkipUntil(interpreter, new[] { "[then]" });
+                }
             }
             else
             {
-                var compile_until = interpreter.Handlers[compile_until_word.Value.handler_index];
-                var result = interpreter.Pop().AsBoolean(interpreter);
+                var found_word = SkipUntil(interpreter, new[] { "[else]", "[then]" });
 
-                if (result)
+                if (found_word == "[else]")
                 {
-                    interpreter.Push(Value.From("[else]"));
-                    interpreter.Push(Value.From("[then]"));
-                    interpreter.Push(Value.From(2));
-
-                    compile_until.handler(interpreter);
-
-                    var found_word = interpreter.Pop().AsString(interpreter);
-
-                    if (found_word == "[else]")
-                    {
-                        SkipUntil(interpreter, new[] { "[then]" });
-                    }
-                }
-                else
-                {
-                    var found_word = SkipUntil(interpreter, new[] { "[else]", "[then]" });
-
-                    if (found_word == "[else]")
-                    {
-                        interpreter.Push(Value.From("[then]"));
-                        interpreter.Push(Value.From(1));
-
-                        compile_until.handler(interpreter);
-
-                        interpreter.Pop();
-                    }
+                    CompileUntil(interpreter, new[] { "[then]" });
                 }
             }
         }
