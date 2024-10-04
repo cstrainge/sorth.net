@@ -414,6 +414,14 @@
 
 
 
+: thread.new immediate description: "Create a new thread and run the specified word and return the new thread id."
+             signature: "thread.new <word_name>"
+    word op.push_constant_value
+    ` thread.new op.execute
+;
+
+
+
 ( Handy comparisons. )
 : 0>  description: "Is the value greater than 0?"
       signature: "value -- test_result"

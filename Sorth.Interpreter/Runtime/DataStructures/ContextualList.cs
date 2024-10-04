@@ -29,6 +29,18 @@ namespace Sorth.Interpreter.Runtime.DataStructures
             MarkContext();
         }
 
+        public ContextualList(ContextualList<value_type> list)
+        {
+            stack = new List<SubList>();
+
+            MarkContext();
+
+            foreach (var sub_list in list.stack)
+            {
+                stack[0].items.AddRange(sub_list.items);
+            }
+        }
+
         public int Count()
         {
             return stack[stack.Count - 1].start_index + stack[stack.Count - 1].items.Count;

@@ -273,9 +273,81 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.Push(Value.From(depth));
         }
 
+        private static void WordSorthMemory(SorthInterpreter interpreter)
+        {
+            var process = Process.GetCurrentProcess();
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.WaitForFullGCComplete();
+
+            interpreter.Push(Value.From(process.WorkingSet64));
+        }
+
         private static void WordThrow(SorthInterpreter interpreter)
         {
             interpreter.ThrowError(interpreter.Pop().AsString(interpreter));
+        }
+
+        private static void WordThreadShow(SorthInterpreter interpreter)
+        {
+            var list = interpreter.Threads;
+
+            foreach (var item in list)
+            {
+                var name = interpreter.Handlers[item.Word.handler_index].name;
+
+                Console.WriteLine($"Thread {item.WordThread.ManagedThreadId} " +
+                                  $"word {name}, ({item.Word.handler_index})" +
+                                  (item.WordThread.IsAlive ? " has completed." : " is running."));
+            }
+        }
+
+        private static void WordThreadNew(SorthInterpreter interpreter)
+        {
+            var name = interpreter.Pop().AsString(interpreter);
+            var ( found, word ) = interpreter.FindWord(name);
+
+            if (found && word != null)
+            {
+                var id = interpreter.ExecuteWordThraded(word.Value);
+                interpreter.Push(Value.From(id));
+            }
+            else
+            {
+                interpreter.ThrowError($"Could not start thread, word {name} not found.");
+            }
+        }
+
+        private static void WordThreadPushTo(SorthInterpreter interpreter)
+        {
+            var id = (int)interpreter.Pop().AsInteger(interpreter);
+            var value = interpreter.Pop();
+
+            interpreter.ThreadPushInput(id, value);
+        }
+
+        private static void WordThreadPopFrom(SorthInterpreter interpreter)
+        {
+            var id = (int)interpreter.Pop().AsInteger(interpreter);
+            var value = interpreter.ThreadPopOutput(id);
+
+            interpreter.Push(value);
+        }
+
+        private static void WordThreadPush(SorthInterpreter interpreter)
+        {
+            var value = interpreter.Pop();
+            var id = Thread.CurrentThread.ManagedThreadId;
+
+            interpreter.ThreadPushOutput(id, value);
+        }
+
+        private static void WordThreadPop(SorthInterpreter interpreter)
+        {
+            var id = Thread.CurrentThread.ManagedThreadId;
+
+            interpreter.Push(interpreter.ThreadPopInput(id));
         }
 
 
@@ -319,9 +391,37 @@ namespace Sorth.Interpreter.Runtime.Words
                 "Get the max depth of the sorth data stack.",
                 " -- depth");
 
+            interpreter.AddWord("sorth.memory", WordSorthMemory,
+                "Get the size of the process's working set.",
+                " -- size");
+
             interpreter.AddWord("throw", WordThrow,
                 "Throw an exception with the given message.",
                 "message -- ");
+
+            interpreter.AddWord(".t", WordThreadShow,
+                "Print out the list of interpreter threads.",
+                " -- ");
+
+            interpreter.AddWord("thread.new", WordThreadNew,
+                "Create a new thread and run the specified word and return the new thread id.",
+                "word-index -- thread-id");
+
+            interpreter.AddWord("thread.push-to", WordThreadPushTo,
+                "Push the top value to another thread's input stack.",
+                "value thread-id -- ");
+
+            interpreter.AddWord("thread.pop-from", WordThreadPopFrom,
+                "Pop a value off of the threads input queue, block if there's nothing available.",
+                "thread-id -- input-value");
+
+            interpreter.AddWord("thread.push", WordThreadPush,
+                "Push the top value onto the thread's output queue.",
+                "output-value -- ");
+
+            interpreter.AddWord("thread.pop", WordThreadPop,
+                "Pop from another thread's output stack and push onto the local data stack.",
+                " -- value");
         }
     }
 

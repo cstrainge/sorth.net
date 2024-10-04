@@ -50,6 +50,20 @@ namespace Sorth.Interpreter.Runtime.DataStructures
             MarkContext();
         }
 
+        public Dictionary(Dictionary original)
+        {
+            stack = new List<Dictionary<string, Word>>();
+            MarkContext();
+
+            foreach (var sub_dictionary in original.stack)
+            {
+                foreach (var entry in sub_dictionary)
+                {
+                    stack[0][entry.Key] = entry.Value;
+                }
+            }
+        }
+
         public void Insert(string name, Word word)
         {
             var top = stack[stack.Count - 1];

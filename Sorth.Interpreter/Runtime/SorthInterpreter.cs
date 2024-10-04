@@ -8,6 +8,8 @@ using Sorth.Interpreter.Runtime.DataStructures;
 
 namespace Sorth.Interpreter.Runtime
 {
+
+
     using CallItem = ( string Name, Location Location );
 
 
@@ -29,8 +31,28 @@ namespace Sorth.Interpreter.Runtime
     }
 
 
+    public class SubThreadInfo
+    {
+        public Word Word;
+        public Thread WordThread;
+
+        public BlockingStack Inputs;
+        public BlockingStack Outputs;
+
+        public SubThreadInfo(Word word, Thread word_thread)
+        {
+            Word = word;
+            WordThread = word_thread;
+            Inputs = new BlockingStack();
+            Outputs = new BlockingStack();
+        }
+    }
+
+
     public class SorthInterpreter : ContextualData
     {
+        private SorthInterpreter? ParentInterpreter;
+
         private List<string> SearchPaths;
 
         private Dictionary Dictionary;
@@ -42,6 +64,9 @@ namespace Sorth.Interpreter.Runtime
                 return Dictionary.CombinedWords;
             }
         }
+
+        private Dictionary<int, SubThreadInfo> SubThreads;
+        private object SubThreadLock;
 
         public ContextualList<WordHandlerInfo> Handlers { get; private set; }
         public ContextualList<Value> Variables { get; private set; }
@@ -68,13 +93,41 @@ namespace Sorth.Interpreter.Runtime
             }
         }
 
+        public List<SubThreadInfo> Threads
+        {
+            get
+            {
+                if (ParentInterpreter != null)
+                {
+                    return ParentInterpreter.Threads;
+                }
+
+                lock (SubThreadLock)
+                {
+                    var info_list = new List<SubThreadInfo>(SubThreads.Count);
+
+                    foreach (var info in SubThreads)
+                    {
+                        info_list.Add(info.Value);
+                    }
+
+                    return info_list;
+                }
+            }
+        }
+
         public SorthInterpreter()
         {
+            ParentInterpreter = null;
+
             SearchPaths = new List<string>();
 
             Dictionary = new Dictionary();
             Handlers = new ContextualList<WordHandlerInfo>();
             Variables = new ContextualList<Value>();
+
+            SubThreads = new Dictionary<int, SubThreadInfo>();
+            SubThreadLock = new object();
 
             Stack = new Stack<Value>(50);
             MaxDepth = 0;
@@ -82,6 +135,29 @@ namespace Sorth.Interpreter.Runtime
             CallStack = new Stack<CallItem>(100);
 
             Constructors = new Stack<Constructor>();
+        }
+
+        public SorthInterpreter(SorthInterpreter parent)
+        {
+            ParentInterpreter = parent;
+
+            SearchPaths = new List<string>(parent.SearchPaths);
+
+            Dictionary = new Dictionary(parent.Dictionary);
+            Handlers = new ContextualList<WordHandlerInfo>(parent.Handlers);
+            Variables = new ContextualList<Value>(parent.Variables);
+
+            SubThreads = new Dictionary<int, SubThreadInfo>();
+            SubThreadLock = new object();
+
+            Stack = new Stack<Value>(50);
+            MaxDepth = 0;
+
+            CallStack = new Stack<CallItem>(100);
+
+            Constructors = new Stack<Constructor>();
+
+            MarkContext();
         }
 
         public void Push(Value value)
@@ -102,6 +178,96 @@ namespace Sorth.Interpreter.Runtime
             }
 
             return Stack.Pop();
+        }
+
+        public int ThreadInputCount(int id)
+        {
+            if (ParentInterpreter != null)
+            {
+                return ParentInterpreter.ThreadInputCount(id);
+            }
+
+            //lock (SubThreadLock)
+            {
+                return GetThreadInfo(id).Inputs.Count;
+            }
+        }
+
+        public void ThreadPushInput(int id, Value value)
+        {
+            if (ParentInterpreter != null)
+            {
+                ParentInterpreter.ThreadPushInput(id, value);
+            }
+            else
+            {
+                //lock (SubThreadLock)
+                {
+                    GetThreadInfo(id).Inputs.Push(value);
+                }
+            }
+        }
+
+        public Value ThreadPopInput(int id)
+        {
+            if (ParentInterpreter != null)
+            {
+                return ParentInterpreter.ThreadPopInput(id);
+            }
+
+            //lock (SubThreadLock)
+            {
+                return GetThreadInfo(id).Inputs.Pop();
+            }
+        }
+
+        public int ThreadOutputCount(int id)
+        {
+            if (ParentInterpreter != null)
+            {
+                ParentInterpreter.ThreadOutputCount(id);
+            }
+
+            //lock (SubThreadLock)
+            {
+                return GetThreadInfo(id).Outputs.Count;
+            }
+        }
+
+        public void ThreadPushOutput(int id, Value value)
+        {
+            if (ParentInterpreter != null)
+            {
+                ParentInterpreter.ThreadPushOutput(id, value);
+            }
+
+            //lock (SubThreadLock)
+            {
+                GetThreadInfo(id).Outputs.Push(value);
+            }
+        }
+
+        public Value ThreadPopOutput(int id)
+        {
+            if (ParentInterpreter != null)
+            {
+                return ParentInterpreter.ThreadPopOutput(id);
+            }
+
+            //lock (SubThreadLock)
+            {
+                var info = GetThreadInfo(id);
+                var value = info.Outputs.Pop();
+
+                if (   (info.Outputs.Count == 0)
+                    && (!info.WordThread.IsAlive))
+                {
+                    info.WordThread.Join();
+                    SubThreads.Remove(id);
+                }
+
+                return value;
+            }
         }
 
         public Value Pick(int index)
@@ -202,6 +368,87 @@ namespace Sorth.Interpreter.Runtime
             var ( found, word ) = FindWord(handler_info.name);
 
             return ( found, word, handler_info.name );
+        }
+
+        private void AppendNewThread(SubThreadInfo info)
+        {
+            if (ParentInterpreter != null)
+            {
+                ParentInterpreter.AppendNewThread(info);
+            }
+            else
+            {
+                lock (SubThreadLock)
+                {
+                    SubThreads.Add(info.WordThread.ManagedThreadId, info);
+                }
+            }
+        }
+
+        private void RemoveThread(int id)
+        {
+            if (ParentInterpreter != null)
+            {
+                ParentInterpreter.RemoveThread(id);
+            }
+            else
+            {
+                lock (SubThreadLock)
+                {
+                    var info = GetThreadInfo(id);
+
+                    if (info.Outputs.Count == 0)
+                    {
+                        info.WordThread.Join();
+                        SubThreads.Remove(id);
+                    }
+                }
+            }
+        }
+
+        private SubThreadInfo GetThreadInfo(int id)
+        {
+            if (!SubThreads.ContainsKey(id))
+            {
+                ThrowError("Thread id not found.");
+            }
+
+            return SubThreads[id];
+        }
+
+        public int ExecuteWordThraded(Word word)
+        {
+            // If this interpreter has a parent, request it to spawn the thread so that they are
+            // all tracked in the same place.
+            if (ParentInterpreter != null)
+            {
+                return ParentInterpreter.ExecuteWordThraded(word);
+            }
+
+            // Clone the interpreter to run in the thread.
+            var child = new SorthInterpreter(this);
+
+            var word_thread = new Thread(() =>
+                {
+                    try
+                    {
+                        // Execute the requested word.  Then on return clean up after ourselves.
+                        child.ExecuteWord(word);
+                        child.RemoveThread(Thread.CurrentThread.ManagedThreadId);
+                    }
+                    catch
+                    {
+                        // TODO: Report this in the thread info?
+                    }
+                });
+
+            // Start and register the thread.
+            word_thread.Start();
+
+            AppendNewThread(new SubThreadInfo(word, word_thread));
+
+            // Finally return the new id to the caller.
+            return word_thread.ManagedThreadId;
         }
 
         public void ExecuteWord(long index)
