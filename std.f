@@ -44,22 +44,6 @@
 
 
 
-: [&&] immediate  description: "Evaluate && at compile time."
-                  signature: "a b -- result"
-    &&
-;
-
-
-
-
-: [||] immediate  description:: "Evaluate || at compile time."
-                  signature: "a b -- result"
-    ||
-;
-
-
-
-
 : if immediate
     unique_str variable! else_label
     unique_str variable! end_label
@@ -324,46 +308,27 @@
 
 
 
-: nip description: "Nip the second from the top item from the stack."
-      signature: "a b c -- a c"
-    swap
-    drop
-;
-
-
-
-: clear description: "Clear out the stack."
-        signature: " -- "
-    begin
-        depth  0  <>
-    while
-        drop
-    repeat
-;
-
-
-
 ( Simple increment and decrements. )
 : ++  description: "Increment a value on the stack."
-      ( value -- incremented )
+      signature: "value -- incremented"
     1 +
 ;
 
 
 : ++!  description: "Increment the given variable."
-       ( variable -- )
+       signature: "variable -- "
     dup @ ++ swap !
 ;
 
 
 : --  description: "Decrement a value on the stack."
-      ( value -- decremented )
+      signature: "value -- decremented"
     1 -
 ;
 
 
 : --!  description: "Decrement the given variable."
-       ( variable -- )
+       signature: "variable -- "
     dup @ -- swap !
 ;
 
@@ -371,7 +336,7 @@
 
 
 : do immediate description: "Define a do loop syntax."
-               signature: "start end  do <loop-body> loop"
+               signature: "start end do <loop-body> loop"
     ( Keep track of the start and end labels for the loop. )
     unique_str variable! top_label
     unique_str variable! end_label
@@ -478,7 +443,6 @@
 ;
 
 
-
 : thread.new immediate description: "Create a new thread and run the specified word and return the new thread id."
              signature: "thread.new <word_name>"
     word op.push_constant_value
@@ -570,6 +534,11 @@
     variable! end_index
     variable! start_index
 
+    end_index @ string.npos =
+    if
+        string @ string.size@ -- end_index !
+    then
+
     start_index @ variable! index
 
     "" variable! sub_string
@@ -578,12 +547,17 @@
     end_index @    string @ string.size@  >=
     ||
     if
-        "Substring indices are out of bounds." throw
+        start_index @
+        end_index @
+        string @ string.size@
+        "Substring indices are out of , ({}, {} / {},) bounds."
+        string.format throw
     then
 
     start_index @  end_index @  >
     if
-        "Start and end index in reverse order." throw
+        start_index @  end_index @ "Start and end index, ({}, {},) in reverse order."
+        string.format throw
     then
 
     begin
@@ -640,12 +614,11 @@
 ;
 
 
-: [].size++!  description: "Grow an array by one item, leaving the resized array on the stack."
-              signature: "array -- resized_array"
+: [].size++!  description: "Grow an array by one item."
+              signature: "array -- "
     variable! the_array
 
     the_array [].size@@ ++ the_array [].size!!
-    the_array @
 ;
 
 
@@ -809,6 +782,26 @@
 
 
 
+
+[defined?] clr.to-string
+[if]
+    : to_string description: "Convert a value to a string."
+                signature: "value -- string"
+
+        ( Check if this is a clr object, if it is use the CLR's built-in string formatting. )
+        dup value.is-clr-object?
+        if
+            clr.to-string
+        else
+            ( Looks like a native value, use Forth's string formatting. )
+            to_string
+        then
+    ;
+[then]
+
+
+
+
 ( Given a format string and a position after the beginning bracket { extract the substring found )
 ( within those brackets, {}  If there no specifier there an empty string, "", is returned instead. )
 ( in both cases an updated index is also returned that points to after the closing bracket, }. )
@@ -869,13 +862,14 @@
 
 ( Parse the specifier found in the format string and return it's values broken out.  If the string )
 ( is empty or a component is missing then the default is returned in it's stead. )
-: string.format.parse_specifier  hidden  ( value specifier -- fill alignment width )
+: string.format.parse_specifier  hidden  ( value specifier -- fill alignment width is_hex )
     variable! specifier
     variable! value
 
     " " variable! fill
     value @ value.is-number? if ">" else "<" then variable! alignment
     ""  variable! width
+    false variable! is_hex
 
     variable char
     0 variable! index
@@ -921,6 +915,13 @@
         else
             0 width !
         then
+
+        index @ specifier @ string.format.get_char char !
+
+        char @  "x"  =
+        char @  "X"  =
+        ||
+        is_hex !
     else
         0 width !
     then
@@ -928,6 +929,7 @@
     fill @
     alignment @
     width @
+    is_hex @
 ;
 
 
@@ -960,14 +962,27 @@
     variable fill
     variable alignment
     variable width
+    variable is_hex
 
     0 variable! fill_width
 
-    value @ to_string variable! str_value
+    variable str_value
 
     specifier @  ""  <>
     if
-        value @ specifier @ string.format.parse_specifier width ! alignment ! fill !
+        value @ specifier @ string.format.parse_specifier is_hex ! width ! alignment ! fill !
+
+        is_hex @
+        if
+            value @ value.is-number?
+            if
+                value @ hex str_value !
+            else
+                "Can't convert value to a hex string." throw
+            then
+        else
+            value @ to_string str_value !
+        then
 
         str_value string.size@@  width  <
         if
@@ -997,6 +1012,8 @@
                     endof
             endcase
         then
+    else
+        value @ to_string str_value !
     then
 
     str_value @
@@ -1452,39 +1469,91 @@
 
 
 
-: show_word immediate description: "Show detailed information about a word."
-                      signature: "show_word <word_name>"
-    words.get{} { word to_string }@
 
-           dup sorth.word.handler_index@
-      swap dup sorth.word.name@
-      swap dup sorth.word.location@
-               dup sorth.location.path@
-          swap dup sorth.location.line@
-              swap sorth.location.column@
-    3 pick dup sorth.word.description@
-      swap dup sorth.word.signature@
-    swap 7 push-to
-    "*Word:        {} -> {}
-      Defined:     {}:{}:{}
+( Given an array and an operator go through the array and select out one of the values using that )
+( operator. )
+: one_of hidden  ( array operator -- chosen-value )
+    variable! operator
+    variable! values
 
-      Description: {}
-      Signature:   {}*"
-    string.format .cr
+    values [].size@@ constant size
 
-    dup sorth.word.is_immediate@
+    size  0<=
     if
-        "\n             The word is immediate." .
+        "No values in array." throw
     then
 
-    sorth.word.is_scripted@
-    if
-        "\n             The word is written in Forth." .
-    else
-        "\n             The word is a native word." .
-    then
+    values [ 0 ]@@ variable! chosen
+    1 variable! index
 
-    cr
+    begin
+        index @  size  <
+    while
+        values [ index @ ]@@ dup  chosen @  operator @ execute
+        if
+            chosen !
+        else
+            drop
+        then
+
+        index ++!
+    repeat
+
+    chosen @
+;
+
+
+
+
+: min_of description: "Get the minimum of an array of values."
+         signature: "array -- smallest-value"
+    ` < one_of
+;
+
+
+
+
+: max_of description: "Get the maximum of an array of values."
+         signature: "array -- smallest-value"
+    ` > one_of
+;
+
+
+
+
+: min description: "Get the minimum of two values."
+      signature: "a b -- [a or b]"
+    variable! b
+    variable! a
+
+    [ a @ , b @ ]  ` <  one_of
+;
+
+
+
+
+: max description: "Get the maximum of two values."
+      signature: "a b -- [a or b]"
+    variable! b
+    variable! a
+
+    [ a @ , b @ ]  ` >  one_of
+;
+
+
+
+
+: [&&] immediate  description: "Evaluate && at compile time."
+                  signature: "a b -- result"
+    &&
+;
+
+
+
+
+: [||] immediate  description: "Evaluate || at compile time."
+                  signature: "a b -- result"
+    ||
 ;
 
 
@@ -1537,6 +1606,52 @@
     [include] std/repl.f
 [else]
     [include] std/simple_repl.f
+[then]
+
+
+
+[undefined?] show_word
+[if]
+    : show_word immediate description: "Show detailed information about a word."
+                          signature: "show_word <word_name>"
+        words.get{} { word to_string }@
+
+               dup sorth.word.handler_index@
+          swap dup sorth.word.name@
+          swap dup sorth.word.location@
+                   dup sorth.location.path@
+              swap dup sorth.location.line@
+                  swap sorth.location.column@
+        3 pick dup sorth.word.description@
+          swap dup sorth.word.signature@
+        swap 7 push-to
+        "*Word:        {} -> {}
+          Defined:     {}:{}:{}
+
+          Description: {}
+          Signature:   {}*"
+        string.format .cr
+
+        dup sorth.word.is_immediate@
+        if
+            "\n             The word is immediate." .
+        then
+
+        sorth.word.is_scripted@
+        if
+            "\n             The word is written in Forth." .
+        else
+            "\n             The word is a native word." .
+        then
+
+        cr
+    ;
+[else]
+    : show_word immediate description: "Show detailed information about a word."
+                signature: "show_word <word_name>"
+        word op.push_constant_value
+        ` show_word op.execute
+    ;
 [then]
 
 

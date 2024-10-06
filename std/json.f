@@ -44,9 +44,11 @@
 
         next_char @
         case
-            "\n" of "\\n" next_char ! endof
-            "\t" of "\\t" next_char ! endof
+            "\n" of "\\n"  next_char ! endof
+            "\r" of "\\r"  next_char ! endof
+            "\t" of "\\t"  next_char ! endof
             "\"" of "\\\"" next_char ! endof
+            "\\" of "\\\\" next_char ! endof
         endcase
 
         new @  next_char @  +  new !
@@ -96,7 +98,7 @@
 
 
 
-: #.to_json  description: "Convert a structure object to a JSON string"
+: #.to_json  description: "Convert a structure object to a JSON string."
              signature: "structure -- json_string"
     variable! structure
     "{ " variable! new_json
@@ -328,9 +330,11 @@
         if
             json_source json.string.next@ dup
             case
-                "n" of drop "\n" next_char ! endof
-                "r" of drop "\r" next_char ! endof
-                "t" of drop "\t" next_char ! endof
+                "n"  of drop "\n" next_char ! endof
+                "r"  of drop "\r" next_char ! endof
+                "t"  of drop "\t" next_char ! endof
+                "\"" of drop "\"" next_char ! endof
+                "\\" of drop "\\" next_char ! endof
 
                 next_char !
             endcase
