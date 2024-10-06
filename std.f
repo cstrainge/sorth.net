@@ -1612,9 +1612,11 @@
 
 [undefined?] show_word
 [if]
-    : show_word immediate description: "Show detailed information about a word."
-                          signature: "show_word <word_name>"
-        words.get{} { word to_string }@
+    : show_word description: "Show detailed information about a word."
+                signature: "show_word <word_name>"
+        variable! name
+
+        words.get{} { name @ }@
 
                dup sorth.word.handler_index@
           swap dup sorth.word.name@
@@ -1646,13 +1648,16 @@
 
         cr
     ;
-[else]
-    : show_word immediate description: "Show detailed information about a word."
-                signature: "show_word <word_name>"
-        word op.push_constant_value
-        ` show_word op.execute
-    ;
 [then]
+
+
+
+
+: show_word immediate description: "Show detailed information about a word."
+            signature: "show_word <word_name>"
+    word op.push_constant_value
+    ` show_word op.execute
+;
 
 
 
