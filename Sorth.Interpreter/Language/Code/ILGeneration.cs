@@ -115,7 +115,7 @@ namespace Sorth.Interpreter.Language.Code
             }
 
             // Create a new static class to hold the newly generated word.
-            var type_builder = Module.DefineType($"{name}_{Index()}_word",
+            var type_builder = Module.DefineType($"{name}_Word{Index()}",
                            TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.Abstract);
 
 
