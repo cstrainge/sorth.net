@@ -91,8 +91,7 @@ namespace Sorth.Interpreter.Language.Code
 
         private static uint Index()
         {
-            ++UniqueIndex;
-            return UniqueIndex;
+            return Interlocked.Increment(ref UniqueIndex);
         }
 
         // Instead of generating a class and method for an empty code body, return this null-handler

@@ -31,20 +31,20 @@ namespace Sorth.Interpreter.Runtime
     }
 
 
-    public class SubThreadInfo
+    public struct SubThreadInfo
     {
         public Word Word;
         public Thread WordThread;
 
-        public BlockingStack Inputs;
-        public BlockingStack Outputs;
+        public BlockingQueue Inputs;
+        public BlockingQueue Outputs;
 
         public SubThreadInfo(Word word, Thread word_thread)
         {
             Word = word;
             WordThread = word_thread;
-            Inputs = new BlockingStack();
-            Outputs = new BlockingStack();
+            Inputs = new BlockingQueue();
+            Outputs = new BlockingQueue();
         }
     }
 
@@ -187,10 +187,7 @@ namespace Sorth.Interpreter.Runtime
                 return ParentInterpreter.ThreadInputCount(id);
             }
 
-            //lock (SubThreadLock)
-            {
-                return GetThreadInfo(id).Inputs.Count;
-            }
+            return GetThreadInfo(id).Inputs.Count;
         }
 
         public void ThreadPushInput(int id, Value value)
@@ -201,10 +198,7 @@ namespace Sorth.Interpreter.Runtime
             }
             else
             {
-                //lock (SubThreadLock)
-                {
-                    GetThreadInfo(id).Inputs.Push(value);
-                }
+                GetThreadInfo(id).Inputs.Push(value);
             }
         }
 
@@ -215,23 +209,17 @@ namespace Sorth.Interpreter.Runtime
                 return ParentInterpreter.ThreadPopInput(id);
             }
 
-            //lock (SubThreadLock)
-            {
-                return GetThreadInfo(id).Inputs.Pop();
-            }
+            return GetThreadInfo(id).Inputs.Pop();
         }
 
         public int ThreadOutputCount(int id)
         {
             if (ParentInterpreter != null)
             {
-                ParentInterpreter.ThreadOutputCount(id);
+                return ParentInterpreter.ThreadOutputCount(id);
             }
 
-            //lock (SubThreadLock)
-            {
-                return GetThreadInfo(id).Outputs.Count;
-            }
+            return GetThreadInfo(id).Outputs.Count;
         }
 
         public void ThreadPushOutput(int id, Value value)
@@ -240,8 +228,7 @@ namespace Sorth.Interpreter.Runtime
             {
                 ParentInterpreter.ThreadPushOutput(id, value);
             }
-
-            //lock (SubThreadLock)
+            else
             {
                 GetThreadInfo(id).Outputs.Push(value);
             }
@@ -254,20 +241,21 @@ namespace Sorth.Interpreter.Runtime
                 return ParentInterpreter.ThreadPopOutput(id);
             }
 
-            //lock (SubThreadLock)
-            {
-                var info = GetThreadInfo(id);
-                var value = info.Outputs.Pop();
+            var info = GetThreadInfo(id);
+            var value = info.Outputs.Pop();
 
-                if (   (info.Outputs.Count == 0)
-                    && (!info.WordThread.IsAlive))
+            if (   (!info.WordThread.IsAlive)
+                && (info.Outputs.Count == 0))
+            {
+                info.WordThread.Join();
+
+                lock (SubThreadLock)
                 {
-                    info.WordThread.Join();
                     SubThreads.Remove(id);
                 }
-
-                return value;
             }
+
+            return value;
         }
 
         public Value Pick(int index)
@@ -393,13 +381,16 @@ namespace Sorth.Interpreter.Runtime
             }
             else
             {
-                lock (SubThreadLock)
-                {
-                    var info = GetThreadInfo(id);
+                var info = GetThreadInfo(id);
 
-                    if (info.Outputs.Count == 0)
+                // Only clean up the thread structure if it's output queue is empty.  This way we
+                // can make sure receiving threads get their messages.
+                if (info.Outputs.Count == 0)
+                {
+                    info.WordThread.Join();
+
+                    lock (SubThreadLock)
                     {
-                        info.WordThread.Join();
                         SubThreads.Remove(id);
                     }
                 }
@@ -408,21 +399,29 @@ namespace Sorth.Interpreter.Runtime
 
         private SubThreadInfo GetThreadInfo(int id)
         {
-            if (!SubThreads.ContainsKey(id))
+            if (ParentInterpreter != null)
             {
-                ThrowError("Thread id not found.");
+                return ParentInterpreter.GetThreadInfo(id);
             }
 
-            return SubThreads[id];
+            lock (SubThreadLock)
+            {
+                if (!SubThreads.ContainsKey(id))
+                {
+                    ThrowError($"Thread id, {id}, not found.");
+                }
+
+                return SubThreads[id];
+            }
         }
 
-        public int ExecuteWordThraded(Word word)
+        public int ExecuteWordThreaded(Word word)
         {
             // If this interpreter has a parent, request it to spawn the thread so that they are
             // all tracked in the same place.
             if (ParentInterpreter != null)
             {
-                return ParentInterpreter.ExecuteWordThraded(word);
+                return ParentInterpreter.ExecuteWordThreaded(word);
             }
 
             // Clone the interpreter to run in the thread.

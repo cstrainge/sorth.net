@@ -5,17 +5,17 @@ namespace Sorth.Interpreter.Runtime.DataStructures
 {
 
 
-    public class BlockingStack
+    public class BlockingQueue
     {
         private object ItemLock;
-        private Stack<Value> ValueStack;
-        private ManualResetEventSlim Condition;
+        private Queue<Value> ValueQueue;
+        //private ManualResetEventSlim Condition;
 
-        public BlockingStack()
+        public BlockingQueue()
         {
             ItemLock = new object();
-            ValueStack = new Stack<Value>();
-            Condition = new ManualResetEventSlim();
+            ValueQueue = new Queue<Value>();
+            //Condition = new ManualResetEventSlim();
         }
 
         public int Count
@@ -24,7 +24,7 @@ namespace Sorth.Interpreter.Runtime.DataStructures
             {
                 lock (ItemLock)
                 {
-                    return ValueStack.Count;
+                    return ValueQueue.Count;
                 }
             }
         }
@@ -33,24 +33,25 @@ namespace Sorth.Interpreter.Runtime.DataStructures
         {
             lock (ItemLock)
             {
-                ValueStack.Push(value);
-                Condition.Set();
+                ValueQueue.Enqueue(value);
+                //Condition.Set();
+                Monitor.PulseAll(ItemLock);
             }
         }
 
         public Value Pop()
         {
-            while (true)
+            /*while (true)
             {
                 Condition.Wait();
 
                 lock (ItemLock)
                 {
-                    if (ValueStack.Count > 0)
+                    if (ValueQueue.Count > 0)
                     {
-                        var item = ValueStack.Pop();
+                        var item = ValueQueue.Dequeue();
 
-                        if (ValueStack.Count == 0)
+                        if (ValueQueue.Count == 0)
                         {
                             Condition.Reset();
                         }
@@ -58,18 +59,15 @@ namespace Sorth.Interpreter.Runtime.DataStructures
                         return item;
                     }
                 }
-            }
-
-            /*lock (ItemLock)
+            }*/
+            lock (ItemLock)
             {
-                while (ValueStack.Count == 0)
+                while (ValueQueue.Count == 0)
                 {
-                    Condition.Reset();
                     Monitor.Wait(ItemLock);
                 }
-
-                return ValueStack.Pop();
-            }*/
+                return ValueQueue.Dequeue();
+            }
         }
     }
 

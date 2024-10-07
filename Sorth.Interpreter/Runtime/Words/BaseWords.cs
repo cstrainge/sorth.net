@@ -298,8 +298,9 @@ namespace Sorth.Interpreter.Runtime.Words
                 var name = interpreter.Handlers[item.Word.handler_index].name;
 
                 Console.WriteLine($"Thread {item.WordThread.ManagedThreadId} " +
-                                  $"word {name}, ({item.Word.handler_index})" +
-                                  (item.WordThread.IsAlive ? " has completed." : " is running."));
+                                  $"word {name}, ({item.Word.handler_index}) " +
+                                  $"I/O queues ({item.Inputs.Count}/{item.Outputs.Count}) " +
+                                  (item.WordThread.IsAlive ? "is running." : "has completed."));
             }
         }
 
@@ -310,7 +311,7 @@ namespace Sorth.Interpreter.Runtime.Words
 
             if (found && word != null)
             {
-                var id = interpreter.ExecuteWordThraded(word.Value);
+                var id = interpreter.ExecuteWordThreaded(word.Value);
                 interpreter.Push(Value.From(id));
             }
             else
@@ -1355,7 +1356,8 @@ namespace Sorth.Interpreter.Runtime.Words
 
         private static void WordUniqueStr(SorthInterpreter interpreter)
         {
-            var new_string = $"unique-{unique_index:D4}";
+            int new_index = Interlocked.Increment(ref unique_index);
+            var new_string = $"unique-{new_index:D4}";
             unique_index++;
 
             interpreter.Push(Value.From(new_string));
