@@ -251,7 +251,10 @@ namespace Sorth.Interpreter.Runtime
 
                 lock (SubThreadLock)
                 {
-                    SubThreads.Remove(id);
+                    if (SubThreads.ContainsKey(id))
+                    {
+                        SubThreads.Remove(id);
+                    }
                 }
             }
 
@@ -381,6 +384,7 @@ namespace Sorth.Interpreter.Runtime
             }
             else
             {
+                // Get a copy of the info struct.
                 var info = GetThreadInfo(id);
 
                 // Only clean up the thread structure if it's output queue is empty.  This way we
@@ -391,7 +395,10 @@ namespace Sorth.Interpreter.Runtime
 
                     lock (SubThreadLock)
                     {
-                        SubThreads.Remove(id);
+                        if (SubThreads.ContainsKey(id))
+                        {
+                            SubThreads.Remove(id);
+                        }
                     }
                 }
             }
