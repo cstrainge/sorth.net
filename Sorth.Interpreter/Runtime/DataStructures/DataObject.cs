@@ -13,7 +13,7 @@ namespace Sorth.Interpreter.Runtime.DataStructures
         public List<string> FieldNames { get; private set; }
         public List<Value> Defaults { get; private set; }
 
-        public static DataObjectDefinition NullDefinition = 
+        public static DataObjectDefinition NullDefinition =
                      new DataObjectDefinition("null", false, new List<string>(), new List<Value>());
 
 
@@ -93,7 +93,7 @@ namespace Sorth.Interpreter.Runtime.DataStructures
                 {
                     for (int i = 0; i < Fields.Count; ++i)
                     {
-                        if (Fields[i] != other.Fields[i])
+                        if (!Fields[i].Equals(other.Fields[i]))
                         {
                             return false;
                         }

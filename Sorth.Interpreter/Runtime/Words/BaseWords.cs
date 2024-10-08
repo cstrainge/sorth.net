@@ -1782,6 +1782,43 @@ namespace Sorth.Interpreter.Runtime.Words
             }
         }
 
+        private static void WordStructureFieldExists(SorthInterpreter interpreter)
+        {
+            var data = interpreter.Pop().AsDataObject(interpreter);
+            var field = interpreter.Pop().AsString(interpreter);
+
+            var found = false;
+
+            foreach (var next_name in data.Definition.FieldNames)
+            {
+                if (field == next_name)
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            interpreter.Push(Value.From(found));
+        }
+
+        private static void WordStructureCompare(SorthInterpreter interpreter)
+        {
+            Value data_object_b = interpreter.Pop();
+            Value data_object_a = interpreter.Pop();
+
+            if (   (!data_object_a.IsDataObject())
+                || (!data_object_b.IsDataObject()))
+            {
+                var a_message = data_object_a.IsDataObject() ? "data object" : "non-data object";
+                var b_message = data_object_b.IsDataObject() ? "data object" : "non-data object";
+
+                interpreter.ThrowError("Expected both values to be data objects, " +
+                                       $"but got {a_message} and {b_message}.");
+            }
+
+            interpreter.Push(Value.From(data_object_a.Equals(data_object_b)));
+        }
+
 
         public static void Register(SorthInterpreter interpreter)
         {
@@ -1800,6 +1837,14 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.AddWord("#.iterate", WordStructureIterate,
                 "Call an iterator for each member of a structure.",
                 "word_or_index -- ");
+
+            interpreter.AddWord("#.field-exists?", WordStructureFieldExists,
+                "Check if the named structure field exits.",
+                "field_name structure -- boolean");
+
+            interpreter.AddWord("#.=", WordStructureCompare,
+                "Check if two structures are the same.",
+                "a b -- boolean");
 
             RegisterWordInfoStruct(interpreter);
         }
@@ -1905,6 +1950,24 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.Push(Value.From(array_dst));
         }
 
+        private static void WordArrayCompare(SorthInterpreter interpreter)
+        {
+            Value array_b = interpreter.Pop();
+            Value array_a = interpreter.Pop();
+
+            if (   (!array_a.IsArray())
+                || (!array_b.IsArray()))
+            {
+                var a_message = array_a.IsArray() ? "array" : "non-array";
+                var b_message = array_b.IsArray() ? "array" : "non-array";
+
+                interpreter.ThrowError("Expected both values to be arrays, " +
+                                       $"but got {a_message} and {b_message}.");
+            }
+
+            interpreter.Push(Value.From(array_a.Equals(array_b)));
+        }
+
         private static void WordPushFront(SorthInterpreter interpreter)
         {
             var array = interpreter.Pop().AsArray(interpreter);
@@ -1984,6 +2047,10 @@ namespace Sorth.Interpreter.Runtime.Words
 
             interpreter.AddWord("[].+", WordArrayPlus,
                 "Take two arrays and deep copy the contents from the second into the first.",
+                "dest source -- dest");
+
+            interpreter.AddWord("[].=", WordArrayCompare,
+                "Take two arrays and compare the contents to each other.",
                 "dest source -- dest");
 
             interpreter.AddWord("[].push_front!", WordPushFront,
@@ -2252,6 +2319,24 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.Push(Value.From(map_dst));
         }
 
+        private static void WordHashCompare(SorthInterpreter interpreter)
+        {
+            Value hash_b = interpreter.Pop();
+            Value hash_a = interpreter.Pop();
+
+            if (   (!hash_a.IsHashMap())
+                || (!hash_b.IsHashMap()))
+            {
+                var a_message = hash_a.IsHashMap() ? "hash-map" : "non-hash-map";
+                var b_message = hash_b.IsHashMap() ? "hash-map" : "non-hash-map";
+
+                interpreter.ThrowError("Expected both values to be hash-maps, " +
+                                       $"but got {a_message} and {b_message}.");
+            }
+
+            interpreter.Push(Value.From(hash_a.Equals(hash_b)));
+        }
+
         private static void WordHashSize(SorthInterpreter interpreter)
         {
             var map = interpreter.Pop().AsHashMap(interpreter);
@@ -2295,6 +2380,10 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.AddWord("{}.+", WordHashPlus,
                 "Take two hashes and deep copy the contents from the second into the first.",
                 "dest source -- dest");
+
+            interpreter.AddWord("{}.=", WordHashCompare,
+                "Compare two hash-maps for equality.",
+                "a b -- is-equal?");
 
             interpreter.AddWord("{}.size@", WordHashSize,
                 "Get the size of the hash table.",

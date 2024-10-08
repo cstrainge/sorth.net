@@ -1,4 +1,5 @@
 ﻿
+using System.Text;
 using Sorth.Interpreter.Language.Code;
 using Sorth.Interpreter.Language.Source;
 
@@ -262,119 +263,101 @@ namespace Sorth.Interpreter.Runtime.DataStructures
     }
 
 
-    class IntValue : Value
+    class IntValue : Value, IEquatable<IntValue>
     {
         public readonly long Value;
         public IntValue(long value) => Value = value;
         public override string ToString() => Value.ToString();
         public override int GetHashCode() => Value.GetHashCode();
 
-        public override bool Equals(object? obj)
+        public bool Equals(IntValue? other)
         {
-            if (   (obj != null)
-                && (obj is IntValue other))
-            {
-                return Value == other.Value;
-            }
-
-            return false;
+            return other != null && Value == other.Value;;
         }
+
+        public override bool Equals(object? obj) => Equals(obj as IntValue);
 
         public override Value Clone() => new IntValue(Value);
     }
 
-    class DoubleValue : Value
+    class DoubleValue : Value, IEquatable<DoubleValue>
     {
         public readonly double Value;
         public DoubleValue(double value) => Value = value;
         public override string ToString() => Value.ToString();
         public override int GetHashCode() => Value.GetHashCode();
 
-        public override bool Equals(object? obj)
+        public bool Equals(DoubleValue? other)
         {
-            if (   (obj != null)
-                && (obj is DoubleValue other))
-            {
-                return Value == other.Value;
-            }
-
-            return false;
+            return other != null && Value == other.Value;
         }
+
+        public override bool Equals(object? obj) => Equals(obj as DoubleValue);
 
         public override Value Clone() => new DoubleValue(Value);
     }
 
-    class BoolValue : Value
+    class BoolValue : Value, IEquatable<BoolValue>
     {
         public readonly bool Value;
         public BoolValue(bool value) => Value = value;
         public override string ToString() => Value ? "true" : "false";
         public override int GetHashCode() => Value.GetHashCode();
 
-        public override bool Equals(object? obj)
+        public bool Equals(BoolValue? other)
         {
-            if (   (obj != null)
-                && (obj is BoolValue other))
-            {
-                return Value == other.Value;
-            }
-
-            return false;
+            return other != null && Value == other.Value;
         }
+
+        public override bool Equals(object? obj) => Equals(obj as BoolValue);
 
         public override Value Clone() => new BoolValue(Value);
     }
 
-    class StringValue : Value
+    class StringValue : Value, IEquatable<StringValue>
     {
         public readonly string Value;
         public StringValue(string value) => Value = value;
         public override string ToString() => Value;
         public override int GetHashCode() => Value.GetHashCode();
 
-        public override bool Equals(object? obj)
+        public bool Equals(StringValue? other)
         {
-            if (   (obj != null)
-                && (obj is StringValue other))
-            {
-                return Value == other.Value;
-            }
-
-            return false;
+            return other != null && Value == other.Value;
         }
+
+        public override bool Equals(object? obj) => Equals(obj as StringValue);
 
         public override Value Clone() => new StringValue(Value);
     }
 
-    class TokenValue : Value
+    class TokenValue : Value, IEquatable<TokenValue>
     {
         public readonly Token Value;
         public TokenValue(Token value) => Value = value;
         public override string ToString() => Value.Text;
         public override int GetHashCode() => Value.GetHashCode();
 
-        public override bool Equals(object? obj)
+        public bool Equals(TokenValue? other)
         {
-            if (   (obj != null)
-                && (obj is TokenValue other))
-            {
-                return Value.Equals(other.Value);
-            }
-
-            return false;
+            return other != null && Value.Equals(other.Value);
         }
+
+        public override bool Equals(object? obj) => Equals(obj as TokenValue);
 
         public override Value Clone() => new TokenValue(Value);
     }
 
-    class ArrayValue : Value
+    class ArrayValue : Value, IEquatable<ArrayValue>
     {
         public readonly List<Value> Value;
         public ArrayValue(List<Value> value) => Value = value;
 
         public override string ToString()
         {
-            string result = "[ ";
+            var result = new StringBuilder();
+
+            result.Append("[ ");
 
             for (int i = 0; i < Value.Count; ++i)
             {
@@ -382,46 +365,59 @@ namespace Sorth.Interpreter.Runtime.DataStructures
 
                 if (value is StringValue string_value)
                 {
-                    result += Stringify(string_value.Value);
+                    result.Append(Stringify(string_value.Value));
                 }
                 else
                 {
-                    result += value;
+                    result.Append(value);
                 }
 
-                result += i < (Value.Count - 1) ? " , " : " ";
+                result.Append(i < (Value.Count - 1) ? " , " : " ");
             }
 
-            return result + "]";
+            result.Append("]");
+
+            return result.ToString();
         }
 
-        public override int GetHashCode() => Value.GetHashCode();
-
-        public override bool Equals(object? obj)
+        public override int GetHashCode()
         {
-            if (   (obj != null)
-                && (obj is ArrayValue other))
+            HashCode hash = new HashCode();
+
+            foreach (var item in Value)
             {
-                return Value.Equals(other.Value);
+                hash.Add(item);
+            }
+
+            return hash.ToHashCode();
+        }
+
+        public bool Equals(ArrayValue? other)
+        {
+            if (other != null)
+            {
+                return Value.SequenceEqual(other.Value);
             }
 
             return false;
         }
 
+        public override bool Equals(object? obj) => Equals(obj as ArrayValue);
+
         public override Value Clone()
         {
-            List<Value> new_values = new List<Value>(Value.Count);
+            var new_values = new List<Value>(Value.Count);
 
-            for (int i = 0; i < Value.Count; ++i)
-            {
-                new_values.Add(Value[i].Clone());
-            }
+             foreach (var item in Value)
+             {
+                 new_values.Add(item.Clone());
+             }
 
             return new ArrayValue(new_values);
         }
     }
 
-    class HashMapValue : Value
+    class HashMapValue : Value, IEquatable<HashMapValue>
     {
         public readonly Dictionary<Value, Value> Value;
         public HashMapValue(Dictionary<Value, Value> value) => Value = value;
@@ -429,7 +425,9 @@ namespace Sorth.Interpreter.Runtime.DataStructures
         public override string ToString()
         {
             string outer_spaces = new string(' ', DataObjectDefinition.indent);
-            string result = "{\n";
+            var result = new StringBuilder();
+
+            result.Append("{\n");
 
             DataObjectDefinition.indent += 4;
             string inner_spaces = new string(' ', DataObjectDefinition.indent);
@@ -444,36 +442,68 @@ namespace Sorth.Interpreter.Runtime.DataStructures
                 string value = entry.Value.IsString() ? Stringify(entry.Value.ToString() ?? "")
                                                       : entry.Value.ToString() ?? "";
 
-                result += $"{inner_spaces}{key} -> {value}";
+                result.AppendFormat("{0}{1} -> {2}", inner_spaces, key, value);
 
                 if (index < count - 1)
                 {
-                    result += " , \n";
+                    result.Append(" , \n");
                 }
                 else
                 {
-                    result += "\n";
+                    result.Append("\n");
                 }
 
                 ++index;
             }
             DataObjectDefinition.indent -= 4;
 
-            return result + outer_spaces + "}";
+            result.Append(outer_spaces);
+            result.Append("}");
+
+            return result.ToString();
         }
 
-        public override int GetHashCode() => Value.GetHashCode();
-
-        public override bool Equals(object? obj)
+        public override int GetHashCode()
         {
-            if (   (obj != null)
-                && (obj is HashMapValue other))
+            HashCode hash = new HashCode();
+
+            foreach (var item in Value)
             {
-                return Value.Equals(other.Value);
+                hash.Add(HashCode.Combine(item.Key ?? (object)0, item.Value ?? (object)0));
             }
 
-            return false;
+            return hash.ToHashCode();
         }
+
+        public bool Equals(HashMapValue? other)
+        {
+            if (other == null)
+            {
+                return false;
+            }
+
+            if (Value.Count != other.Value.Count)
+            {
+                return false;
+            }
+
+            foreach (var item in Value)
+            {
+                if (!other.Value.TryGetValue(item.Key, out var other_value))
+                {
+                    return false;
+                }
+
+                if (!item.Value.Equals(other_value))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public override bool Equals(object? obj) => Equals(obj as HashMapValue);
 
         public override Value Clone()
         {
@@ -481,30 +511,32 @@ namespace Sorth.Interpreter.Runtime.DataStructures
 
             foreach (var entry in Value)
             {
-                new_map[entry.Key.Clone()] = entry.Value.Clone();
+                new_map[entry.Key?.Clone() ?? DataStructures.Value.Default()] =
+                                             entry.Value?.Clone() ?? DataStructures.Value.Default();
             }
 
             return new HashMapValue(new_map);
         }
     }
 
-    class DataObjectValue : Value
+    class DataObjectValue : Value, IEquatable<DataObjectValue>
     {
         public readonly DataObject Value;
         public DataObjectValue(DataObject value) => Value = value;
         public override string ToString() => Value.ToString();
         public override int GetHashCode() => Value.GetHashCode();
 
-        public override bool Equals(object? obj)
+        public bool Equals(DataObjectValue? other)
         {
-            if (   (obj != null)
-                && (obj is DataObjectValue other))
+            if (other != null)
             {
                 return Value.Equals(other.Value);
             }
 
             return false;
         }
+
+        public override bool Equals(object? obj) => Equals(obj as DataObjectValue);
 
         public override Value Clone()
         {
@@ -519,23 +551,25 @@ namespace Sorth.Interpreter.Runtime.DataStructures
         }
     }
 
-    class ByteCodeValue : Value
+    class ByteCodeValue : Value, IEquatable<ByteCodeValue>
     {
         public readonly List<ByteCode> Value;
         public ByteCodeValue(List<ByteCode> value) => Value = value;
         public override string ToString() => "<bytecode>";
         public override int GetHashCode() => Value.GetHashCode();
 
-        public override bool Equals(object? obj)
+
+        public bool Equals(ByteCodeValue? other)
         {
-            if (   (obj != null)
-                && (obj is ByteCodeValue other))
+            if (other != null)
             {
                 return Value.Equals(other.Value);
             }
 
             return false;
         }
+
+        public override bool Equals(object? obj) => Equals(obj as ByteCodeValue);
 
         public override Value Clone()
         {
@@ -544,13 +578,14 @@ namespace Sorth.Interpreter.Runtime.DataStructures
         }
     }
 
-    class ByteBufferValue : Value
+    class ByteBufferValue : Value, IEquatable<ByteBufferValue>
     {
         public readonly ByteBuffer Value;
         public ByteBufferValue(ByteBuffer value) => Value = value;
         public override string ToString() => Value.ToString();
         public override int GetHashCode() => Value.GetHashCode();
-        public override bool Equals(object? obj) => Value.Equals(obj);
+        public bool Equals(ByteBufferValue? other) => other != null && Value.Equals(other.Value);
+        public override bool Equals(object? obj) => Equals(obj as ByteBufferValue);
         public override Value Clone() => new ByteBufferValue(Value.Clone());
     }
 
