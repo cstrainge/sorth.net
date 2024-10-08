@@ -472,7 +472,7 @@ namespace Sorth.Interpreter.Runtime.Words
             interpreter.Push(b);
         }
 
-        private static void WordDepth(SorthInterpreter interpreter)
+        private static void WordStackDepth(SorthInterpreter interpreter)
         {
             interpreter.Push(Value.From(interpreter.Stack.Count));
         }
@@ -526,7 +526,7 @@ namespace Sorth.Interpreter.Runtime.Words
                 "Rotate the top 3 values on the stack.",
                 "a b c -- c a b");
 
-            interpreter.AddWord("depth", WordDepth,
+            interpreter.AddWord("stack.depth", WordStackDepth,
                 "Get the current depth of the stack.",
                 " -- depth");
 
