@@ -9,13 +9,11 @@ namespace Sorth.Interpreter.Runtime.DataStructures
     {
         private object ItemLock;
         private Queue<Value> ValueQueue;
-        //private ManualResetEventSlim Condition;
 
         public BlockingQueue()
         {
             ItemLock = new object();
             ValueQueue = new Queue<Value>();
-            //Condition = new ManualResetEventSlim();
         }
 
         public int Count
@@ -34,32 +32,12 @@ namespace Sorth.Interpreter.Runtime.DataStructures
             lock (ItemLock)
             {
                 ValueQueue.Enqueue(value);
-                //Condition.Set();
                 Monitor.PulseAll(ItemLock);
             }
         }
 
         public Value Pop()
         {
-            /*while (true)
-            {
-                Condition.Wait();
-
-                lock (ItemLock)
-                {
-                    if (ValueQueue.Count > 0)
-                    {
-                        var item = ValueQueue.Dequeue();
-
-                        if (ValueQueue.Count == 0)
-                        {
-                            Condition.Reset();
-                        }
-
-                        return item;
-                    }
-                }
-            }*/
             lock (ItemLock)
             {
                 while (ValueQueue.Count == 0)
