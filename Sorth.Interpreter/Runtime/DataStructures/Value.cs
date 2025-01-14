@@ -10,8 +10,9 @@ namespace Sorth.Interpreter.Runtime.DataStructures
 
     public abstract class Value
     {
-        public static Value Default() => From(0);
+        public static Value Default() => From();
 
+        public static Value From() => new NothingValue();
         public static Value From(long value) => new IntValue(value);
         public static Value From(double value) => new DoubleValue(value);
         public static Value From(bool value) => new BoolValue(value);
@@ -22,7 +23,9 @@ namespace Sorth.Interpreter.Runtime.DataStructures
         public static Value From(DataObject value) => new DataObjectValue(value);
         public static Value From(List<ByteCode> value) => new ByteCodeValue(value);
         public static Value From(ByteBuffer value) => new ByteBufferValue(value);
+        public static Value From(object value) => new ObjectValue(value);
 
+        public bool IsNothing() => this is NothingValue;
         public bool IsNumeric() => IsInteger() || IsDouble() || IsBoolean();
         public bool IsInteger() => this is IntValue;
         public bool IsDouble() => this is DoubleValue;
@@ -34,14 +37,15 @@ namespace Sorth.Interpreter.Runtime.DataStructures
         public bool IsDataObject() => this is DataObjectValue;
         public bool IsByteCode() => this is ByteCodeValue;
         public bool IsByteBuffer() => this is ByteBufferValue;
+        public bool IsObject() => this is ObjectValue;
 
         public static bool BothAreNumeric(Value a, Value b) => a.IsNumeric() && b.IsNumeric();
 
         public static bool EitherIsNumeric(Value a, Value b) => a.IsNumeric() || b.IsNumeric();
         public static bool EitherIsInteger(Value a, Value b) => a.IsInteger() || b.IsInteger();
-        public static bool EitherIsDouble(Value a, Value b) => a.IsDouble() || b.IsDouble();
+        public static bool EitherIsDouble(Value a, Value b)  => a.IsDouble()  || b.IsDouble();
         public static bool EitherIsBoolean(Value a, Value b) => a.IsBoolean() || b.IsBoolean();
-        public static bool EitherIsString(Value a, Value b) => a.IsString() || b.IsString();
+        public static bool EitherIsString(Value a, Value b)  => a.IsString()  || b.IsString();
 
         public abstract Value Clone();
 
@@ -237,6 +241,23 @@ namespace Sorth.Interpreter.Runtime.DataStructures
             return result;
         }
 
+        public object AsObject(SorthInterpreter interpreter)
+        {
+            object result = null!;
+
+            if (this is ObjectValue object_value)
+            {
+                result = object_value.Value;
+            }
+            else
+            {
+                // TODO: Convert to an object.
+                interpreter.ThrowError("Value is not a clr object.");
+            }
+
+            return result;
+        }
+
         public static string Stringify(string str_value)
         {
             string output = "\"";
@@ -260,6 +281,23 @@ namespace Sorth.Interpreter.Runtime.DataStructures
 
             return output;
         }
+    }
+
+
+    class NothingValue : Value, IEquatable<NothingValue>
+    {
+        public NothingValue() {}
+        public override string ToString() => "none";
+        public override int GetHashCode() => 0.GetHashCode();
+
+        public bool Equals(NothingValue? other)
+        {
+            return other != null;
+        }
+
+        public override bool Equals(object? obj) => Equals(obj as NothingValue);
+
+        public override Value Clone() => new NothingValue();
     }
 
 
@@ -587,6 +625,28 @@ namespace Sorth.Interpreter.Runtime.DataStructures
         public bool Equals(ByteBufferValue? other) => other != null && Value.Equals(other.Value);
         public override bool Equals(object? obj) => Equals(obj as ByteBufferValue);
         public override Value Clone() => new ByteBufferValue(Value.Clone());
+    }
+
+    class ObjectValue : Value, IEquatable<ObjectValue>
+    {
+        public readonly object Value;
+        public ObjectValue(object value) => Value = value;
+        public override string ToString() => Value.ToString() ?? "";
+        public override int GetHashCode() => Value.GetHashCode();
+        public bool Equals(ObjectValue? other) => other != null && Value.Equals(other.Value);
+        public override bool Equals(object? obj) => Equals(obj as ObjectValue);
+
+        public override Value Clone()
+        {
+            object new_value = Value;
+
+            if (Value is ICloneable clonable)
+            {
+                new_value = clonable.Clone();
+            }
+
+            return new ObjectValue(new_value);
+        }
     }
 
 }
